@@ -1,0 +1,888 @@
+"use strict";
+
+/* =====================================================
+   Multiplikationstabellen – träningssida
+   Bygger på Snillsparvs film om multiplikationstabellen.
+   All data sparas lokalt i webbläsaren (localStorage).
+   ===================================================== */
+
+/* ---------- Småhjälpare ---------- */
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function median(arr) {
+  if (!arr || arr.length === 0) return null;
+  const s = [...arr].sort((x, y) => x - y);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
+const fmtSec = (ms) => (ms / 1000).toFixed(1).replace(".", ",") + " s";
+
+/* ---------- Talen ---------- */
+// Kommutativa lagen: 4×6 = 6×4, så varje par lagras bara en gång ("4x6").
+const keyOf = (a, b) => Math.min(a, b) + "x" + Math.max(a, b);
+const parseKey = (k) => k.split("x").map(Number);
+
+const ALL_FACTS = [];
+for (let a = 1; a <= 10; a++) {
+  for (let b = a; b <= 10; b++) ALL_FACTS.push(a + "x" + b);
+}
+
+// De sex som enligt filmen verkligen behöver memoreras.
+const HARD_SIX = ["6x6", "6x7", "6x8", "7x7", "7x8", "8x8"];
+
+/* ---------- Sparad data ---------- */
+const STORE_KEY = "snillsparv-multiplikation-v1";
+
+function defaultState() {
+  return {
+    known: {},   // { "4x6": true } – avbockade tal
+    stats: {},   // { "4x6": { attempts, wrong, times: [ms, ...] } }
+    totals: { rounds: 0, answers: 0, correct: 0, bestStreak: 0 },
+    settings: {
+      lastTables: [],
+      count: 10,
+      includeKnown: false,
+      showAnswers: false,
+      commToasts: 0,
+    },
+  };
+}
+
+function load() {
+  if (typeof localStorage === "undefined") return defaultState();
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return defaultState();
+    const data = JSON.parse(raw);
+    const d = defaultState();
+    return {
+      known: data.known || d.known,
+      stats: data.stats || d.stats,
+      totals: Object.assign(d.totals, data.totals),
+      settings: Object.assign(d.settings, data.settings),
+    };
+  } catch {
+    return defaultState();
+  }
+}
+
+const state = load();
+
+function save() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch {
+    /* t.ex. privat läge – sidan funkar ändå, utan att minnas */
+  }
+}
+
+/* ---------- Statistik per tal ---------- */
+const FAST_MS = 2500;   // snabbare än så = blixtsnabbt
+const SLOW_MS = 6000;   // långsammare än så = dags för knep
+
+function getStat(k) {
+  return state.stats[k];
+}
+
+function medTime(k) {
+  const s = getStat(k);
+  return s ? median(s.times) : null;
+}
+
+function recordAnswer(k, correct, ms) {
+  const s = state.stats[k] || (state.stats[k] = { attempts: 0, wrong: 0, times: [] });
+  s.attempts++;
+  if (correct) {
+    if (ms != null) {
+      s.times.push(Math.round(ms));
+      if (s.times.length > 6) s.times.shift();
+    }
+  } else {
+    s.wrong++;
+  }
+  state.totals.answers++;
+  if (correct) state.totals.correct++;
+}
+
+// Hur mycket ett tal behöver tränas: fel väger tyngst, sedan långsamhet.
+function difficulty(k) {
+  const s = getStat(k);
+  if (!s || !s.attempts) return 1.6; // aldrig tränad – ganska hög prioritet
+  let d = 0.4 + (s.wrong / s.attempts) * 3;
+  const med = medTime(k);
+  if (med != null) d += clamp((med - 3000) / 5000, 0, 1) * 1.5;
+  return d;
+}
+
+function weightOf(k) {
+  return difficulty(k) * (state.known[k] ? 0.25 : 1);
+}
+
+// Talen som gått fel eller segt – kandidater för "Mina luckor".
+function weakFacts() {
+  return ALL_FACTS.filter((k) => {
+    const s = getStat(k);
+    if (!s || !s.attempts) return false;
+    const med = medTime(k);
+    return s.wrong > 0 || (med != null && med > 4500);
+  }).sort((x, y) => difficulty(y) - difficulty(x));
+}
+
+/* ---------- Tips & minnesregler (från filmen) ---------- */
+const MNEMONICS = {
+  "7x8": {
+    title: "5, 6, 7, 8!",
+    text: "Skriv svaret först, så blir det 56 = 7 × 8. Det är bara siffrorna i ordning: 5, 6, 7, 8!",
+  },
+  "8x8": {
+    title: "Mario och Luigi!",
+    text: "Mario och Luigi ser ut som två åttor – och de kommer från Nintendo 64. Alltså: 8 × 8 = 64!",
+  },
+  "7x7": {
+    title: "Sjösjuk? Fira nyår!",
+    text: "Sju sju låter som ”sjösjuk” och fyra nio som ”fira nyår”. Tänk dig en sjösjuk pirat som firar nyår: 7 × 7 = 49!",
+  },
+  "6x6": {
+    title: "Sax, sax – träsax!",
+    text: "Sex låter som sax: ”sax, sax, träsax” – 6, 6, 3, 6. Tänk dig en träsax så sitter den i ett klipp: 6 × 6 = 36!",
+  },
+  "6x7": {
+    title: "Hackan!",
+    text: "7:an ser ut som en hacka som hackar 6:an i två bitar: en 4:a och en 2:a (4 + 2 = 6). Så 6 × 7 = 42!",
+  },
+  "6x8": {
+    title: "Sex råttor!",
+    text: "Åtta rimmar på råtta: sex råttor! Två äter upp varandra och kvar är fyra råttor – 4 och 8 ger 48. Så 6 × 8 = 48!",
+  },
+  "3x4": {
+    title: "1, 2, 3, 4!",
+    text: "12 = 3 × 4 – siffrorna kommer i ordning: 1, 2, 3, 4. Precis som 56 = 7 × 8!",
+  },
+};
+
+// Ordning för korten under "Knepen" (samma ordning som i filmen).
+const MNEMONIC_ORDER = ["7x8", "8x8", "7x7", "6x6", "6x7", "6x8"];
+
+function tipFor(a, b) {
+  const k = keyOf(a, b);
+  if (MNEMONICS[k]) return MNEMONICS[k];
+  const other = (n) => (a === n ? b : a);
+
+  if (a === 1 || b === 1) {
+    const n = other(1);
+    return { title: "Gånger 1 – ingenting händer", text: `1 × ${n} är bara ${n}. Talet ändras inte!` };
+  }
+  if (a === 10 || b === 10) {
+    const n = other(10);
+    return { title: "Gånger 10 – lägg till en nolla", text: `Sätt en nolla efter ${n}: ${n} × 10 = ${n * 10}.` };
+  }
+  if (a === 2 || b === 2) {
+    const n = other(2);
+    return { title: "Gånger 2 – dubbla!", text: `Plussa talet med sig självt: ${n} + ${n} = ${n * 2}.` };
+  }
+  if (a === 9 || b === 9) {
+    const n = other(9);
+    return {
+      title: "Nians knep",
+      text: `Första siffran är ett mindre än ${n}, alltså ${n - 1}. Siffrorna i svaret blir 9 ihop: ${n - 1} + ${10 - n} = 9. Svaret är ${n * 9}!`,
+    };
+  }
+  if (a === 5 || b === 5) {
+    const n = other(5);
+    const half = String(n / 2).replace(".", ",");
+    return {
+      title: "Femmans knep – halvera och ta gånger 10",
+      text: `Fem är hälften av tio! Hälften av ${n} är ${half}, och ${half} × 10 = ${n * 5}.`,
+    };
+  }
+  if (a === 4 || b === 4) {
+    const n = other(4);
+    return { title: "Gånger 4 – dubbla två gånger", text: `Dubbla ${n} till ${n * 2}, och dubbla en gång till: ${n * 4}!` };
+  }
+  if (a === 3 || b === 3) {
+    const n = other(3);
+    return { title: "Gånger 3 – dubbla och lägg till en till", text: `${n} + ${n} = ${n * 2}, och ${n * 2} + ${n} = ${n * 3}.` };
+  }
+  return { title: "Nöt in den!", text: "Repetition gör susen – kör några varv till så sitter den." };
+}
+
+/* ---------- Frågeval ---------- */
+function poolFromTables(tables) {
+  const set = new Set();
+  for (const t of tables) {
+    for (let i = 1; i <= 10; i++) set.add(keyOf(t, i));
+  }
+  return [...set];
+}
+
+// Viktat urval utan återläggning: svåra/långsamma tal dras oftare.
+function weightedSample(pool, weights, n) {
+  const items = pool.map((k, i) => ({ k, w: Math.max(weights[i], 0.01) }));
+  const out = [];
+  while (out.length < n && items.length) {
+    let total = 0;
+    for (const it of items) total += it.w;
+    let r = Math.random() * total;
+    let idx = items.length - 1;
+    for (let i = 0; i < items.length; i++) {
+      r -= items[i].w;
+      if (r <= 0) { idx = i; break; }
+    }
+    out.push(items[idx].k);
+    items.splice(idx, 1);
+  }
+  return out;
+}
+
+function buildQueue(pool, count) {
+  const queue = [];
+  while (queue.length < count) {
+    const remaining = count - queue.length;
+    const last = queue[queue.length - 1];
+
+    // sista frågan (eller pool med ett enda tal): dra en i taget, aldrig samma som förra
+    if (remaining === 1 || pool.length === 1) {
+      const cands = pool.length > 1 ? pool.filter((k) => k !== last) : pool;
+      queue.push(weightedSample(cands, cands.map(weightOf), 1)[0]);
+      continue;
+    }
+
+    const take = Math.min(pool.length, remaining);
+    const chunk = weightedSample(pool, pool.map(weightOf), take);
+    // undvik samma tal två gånger i rad där omgångarna möts –
+    // talen i en omgång är alla olika, så det finns alltid ett att byta fram
+    if (chunk[0] === last) {
+      const e = chunk.findIndex((k) => k !== last);
+      [chunk[0], chunk[e]] = [chunk[e], chunk[0]];
+    }
+    queue.push(...chunk);
+  }
+  return queue;
+}
+
+/* =====================================================
+   Härifrån och ner: allt som rör själva sidan (DOM).
+   ===================================================== */
+
+let quiz = null; // pågående runda
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function toast(msg) {
+  const el = $("#toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+/* ---------- Flikar ---------- */
+function showTab(name) {
+  $$(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  $$(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
+  if (name === "tabell") renderGrid();
+  if (name === "stats") renderStats();
+  window.scrollTo({ top: 0 });
+}
+
+/* ---------- Träna: uppstart ---------- */
+function showScreen(name) {
+  $("#setup-screen").hidden = name !== "setup";
+  $("#quiz-screen").hidden = name !== "quiz";
+  $("#result-screen").hidden = name !== "result";
+}
+
+function renderTableChips() {
+  const wrap = $("#table-chips");
+  wrap.innerHTML = "";
+  for (let n = 1; n <= 10; n++) {
+    const btn = document.createElement("button");
+    btn.className = "chip" + (state.settings.lastTables.includes(n) ? " on" : "");
+    btn.textContent = n;
+    btn.setAttribute("aria-pressed", state.settings.lastTables.includes(n));
+    btn.addEventListener("click", () => {
+      const list = state.settings.lastTables;
+      const i = list.indexOf(n);
+      if (i >= 0) list.splice(i, 1);
+      else list.push(n);
+      save();
+      renderTableChips();
+    });
+    wrap.appendChild(btn);
+  }
+}
+
+function startRound(opts) {
+  let pool;
+  if (opts.facts) {
+    pool = [...new Set(opts.facts)];
+  } else {
+    pool = poolFromTables(opts.tables);
+    if (!opts.includeKnown) {
+      const left = pool.filter((k) => !state.known[k]);
+      if (left.length === 0) {
+        toast("Du har bockat av allt här – vi kör repetition! 💪");
+      } else {
+        pool = left;
+      }
+    }
+  }
+  if (pool.length === 0) {
+    toast("Välj minst en tabell först! 🙂");
+    return;
+  }
+
+  const count = state.settings.count;
+  quiz = {
+    opts,
+    label: opts.label || "",
+    queue: buildQueue(pool, count),
+    cap: count + Math.min(4, count),
+    idx: 0,
+    answered: 0,
+    corrects: 0,
+    streak: 0,
+    bestStreak: 0,
+    misses: new Set(),
+    slows: new Set(),
+    results: [],
+    timer: null,
+    current: null,
+  };
+
+  showTab("trana");
+  showScreen("quiz");
+  $("#round-label").textContent = quiz.label;
+  showQuestion();
+}
+
+/* ---------- Träna: frågor ---------- */
+function showQuestion() {
+  const q = quiz;
+  const k = q.queue[q.idx];
+  let [a, b] = parseKey(k);
+  // visa ibland spegelvänt – 4×6 och 6×4 är ju samma sak!
+  if (a !== b && Math.random() < 0.5) [a, b] = [b, a];
+  q.current = { key: k, a, b, t0: performance.now(), done: false };
+
+  $("#q-display").textContent = `${a} × ${b}`;
+  $("#q-progress-text").textContent = `Fråga ${q.idx + 1} av ${q.queue.length}`;
+  $("#q-progress-fill").style.width = (q.idx / q.queue.length) * 100 + "%";
+  $("#feedback").innerHTML = "";
+  $("#q-buttons").hidden = false;
+
+  const input = $("#q-input");
+  input.value = "";
+  input.disabled = false;
+  input.focus();
+
+  updateStreakBadge();
+}
+
+function updateStreakBadge() {
+  const el = $("#q-streak");
+  if (quiz && quiz.streak >= 2) {
+    el.textContent = `🔥 ${quiz.streak}`;
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
+}
+
+// Om ett tal blir fel läggs det in igen lite senare i samma runda.
+function requeue(k) {
+  const q = quiz;
+  if (q.queue.length >= q.cap) return;
+  if (q.queue.slice(q.idx + 1).includes(k)) return;
+  const pos = Math.min(q.idx + 2 + Math.floor(Math.random() * 2), q.queue.length);
+  q.queue.splice(pos, 0, k);
+}
+
+function submitAnswer(skip) {
+  const q = quiz;
+  if (!q || !q.current || q.current.done) return;
+  const cur = q.current;
+  const raw = $("#q-input").value.trim();
+  if (!skip && raw === "") return;
+
+  const ms = performance.now() - cur.t0;
+  const answer = cur.a * cur.b;
+  const correct = !skip && Number(raw) === answer;
+
+  cur.done = true;
+  $("#q-input").disabled = true;
+  $("#q-buttons").hidden = true;
+
+  recordAnswer(cur.key, correct, correct ? ms : null);
+  q.answered++;
+  q.results.push({ key: cur.key, a: cur.a, b: cur.b, correct, ms });
+
+  if (correct) {
+    q.corrects++;
+    q.streak++;
+    q.bestStreak = Math.max(q.bestStreak, q.streak);
+    state.totals.bestStreak = Math.max(state.totals.bestStreak, q.streak);
+    if (ms >= SLOW_MS) q.slows.add(cur.key);
+  } else {
+    q.streak = 0;
+    q.misses.add(cur.key);
+  }
+  save();
+  updateStreakBadge();
+
+  const fb = $("#feedback");
+  if (correct && ms < SLOW_MS) {
+    fb.innerHTML = `<div class="fb ok">✅ Rätt!${ms < FAST_MS ? " Blixtsnabbt ⚡" : ""}</div>`;
+    q.timer = setTimeout(nextQuestion, 800);
+  } else {
+    const tip = tipFor(cur.a, cur.b);
+    const head = correct
+      ? `<div class="fb ok">✅ Rätt! Men den tog en liten stund 🐢</div>`
+      : `<div class="fb bad">${skip ? "" : "Inte riktigt – "}${cur.a} × ${cur.b} = <strong>${answer}</strong></div>`;
+    fb.innerHTML =
+      head +
+      `<div class="tip-box"><strong>💡 ${tip.title}</strong><br>${tip.text}</div>` +
+      `<button class="btn" id="next-btn">Nästa →</button>`;
+    $("#next-btn").addEventListener("click", nextQuestion);
+    $("#next-btn").focus();
+    if (!correct) requeue(cur.key);
+  }
+}
+
+function nextQuestion() {
+  const q = quiz;
+  if (!q) return;
+  clearTimeout(q.timer);
+  q.idx++;
+  if (q.idx >= q.queue.length) finishRound();
+  else showQuestion();
+}
+
+function quitRound() {
+  if (quiz) clearTimeout(quiz.timer);
+  quiz = null;
+  showScreen("setup");
+}
+
+/* ---------- Träna: resultat ---------- */
+function finishRound() {
+  const q = quiz;
+  state.totals.rounds++;
+  save();
+
+  const pct = q.answered ? q.corrects / q.answered : 0;
+  let emoji, headline;
+  if (pct === 1) { emoji = "🏆"; headline = "Alla rätt – WOW!"; }
+  else if (pct >= 0.8) { emoji = "🎉"; headline = "Snyggt jobbat!"; }
+  else if (pct >= 0.5) { emoji = "💪"; headline = "Bra kämpat!"; }
+  else { emoji = "🌱"; headline = "Bra start – knepen hjälper dig!"; }
+
+  const correctTimes = q.results.filter((r) => r.correct);
+  let statPills = `<span class="pill">${q.corrects} av ${q.answered} rätt</span>`;
+  if (q.bestStreak >= 3) statPills += `<span class="pill">🔥 Svit: ${q.bestStreak}</span>`;
+  if (correctTimes.length) {
+    const mean = correctTimes.reduce((s, r) => s + r.ms, 0) / correctTimes.length;
+    statPills += `<span class="pill">⏱ Snitt: ${fmtSec(mean)}</span>`;
+    const fastest = correctTimes.reduce((m, r) => (r.ms < m.ms ? r : m));
+    statPills += `<span class="pill">⚡ Snabbast: ${fastest.a} × ${fastest.b} (${fmtSec(fastest.ms)})</span>`;
+  }
+
+  const workKeys = [...new Set([...q.misses, ...q.slows])];
+  let workHtml = "";
+  if (workKeys.length) {
+    const rows = workKeys
+      .map((k) => {
+        const [a, b] = parseKey(k);
+        const tip = tipFor(a, b);
+        return `<div class="work-row">
+          <div class="work-fact">${a} × ${b} = ${a * b} ${q.misses.has(k) ? "❌" : "🐢"}</div>
+          <div class="work-tip">💡 ${tip.text}</div>
+        </div>`;
+      })
+      .join("");
+    workHtml = `<div class="card"><h2>🔍 Tal att jobba vidare på</h2>${rows}</div>`;
+  } else {
+    workHtml = `<div class="card center"><p style="margin:4px 0">Inga luckor i den här rundan – allt satt direkt! 🌟</p></div>`;
+  }
+
+  let buttons = "";
+  if (workKeys.length) {
+    buttons += `<button class="btn" id="train-work-btn">🎯 Träna på dessa (${workKeys.length})</button>`;
+  }
+  buttons += `<button class="btn ${workKeys.length ? "secondary" : ""}" id="again-btn">🔁 En runda till</button>`;
+  buttons += `<button class="btn ghost" id="change-btn">⚙️ Ändra val</button>`;
+
+  $("#result-screen").innerHTML = `
+    <div class="card center">
+      <div class="result-emoji">${emoji}</div>
+      <h2>${headline}</h2>
+      <div class="result-stats">${statPills}</div>
+    </div>
+    ${workHtml}
+    <div class="result-buttons">${buttons}</div>`;
+
+  const opts = q.opts;
+  quiz = null;
+  showScreen("result");
+  window.scrollTo({ top: 0 });
+
+  if (workKeys.length) {
+    $("#train-work-btn").addEventListener("click", () =>
+      startRound({ facts: workKeys, label: "🎯 Dina luckor" })
+    );
+  }
+  $("#again-btn").addEventListener("click", () => startRound(opts));
+  $("#change-btn").addEventListener("click", () => showScreen("setup"));
+}
+
+/* ---------- Tabellen (bocka av) ---------- */
+function makeCell(text, cls) {
+  const el = document.createElement("button");
+  el.className = "cell " + cls;
+  el.textContent = text;
+  return el;
+}
+
+function renderGrid() {
+  const g = $("#mul-grid");
+  g.innerHTML = "";
+  const corner = makeCell("×", "head corner");
+  corner.tabIndex = -1;
+  g.appendChild(corner);
+
+  for (let c = 1; c <= 10; c++) {
+    const h = makeCell(c, "head");
+    h.title = `Bocka av hela ${c}:ans tabell`;
+    h.addEventListener("click", () => toggleTable(c));
+    g.appendChild(h);
+  }
+  for (let r = 1; r <= 10; r++) {
+    const h = makeCell(r, "head");
+    h.title = `Bocka av hela ${r}:ans tabell`;
+    h.addEventListener("click", () => toggleTable(r));
+    g.appendChild(h);
+
+    for (let c = 1; c <= 10; c++) {
+      const k = keyOf(r, c);
+      const known = !!state.known[k];
+      const cell = makeCell(state.settings.showAnswers ? r * c : `${r}·${c}`, known ? "known" : "");
+      cell.setAttribute("aria-pressed", known);
+      cell.setAttribute("aria-label", `${r} gånger ${c}`);
+      cell.addEventListener("click", () => toggleKnown(r, c));
+      g.appendChild(cell);
+    }
+  }
+  updateKnownProgress();
+}
+
+function toggleKnown(r, c) {
+  const k = keyOf(r, c);
+  if (state.known[k]) {
+    delete state.known[k];
+  } else {
+    state.known[k] = true;
+    if (r !== c && state.settings.commToasts < 3) {
+      state.settings.commToasts++;
+      toast(`${r} × ${c} = ${c} × ${r} – båda avbockade! 😉`);
+    }
+  }
+  save();
+  renderGrid();
+}
+
+function toggleTable(n) {
+  const keys = [];
+  for (let i = 1; i <= 10; i++) keys.push(keyOf(n, i));
+  const allKnown = keys.every((k) => state.known[k]);
+  for (const k of keys) {
+    if (allKnown) delete state.known[k];
+    else state.known[k] = true;
+  }
+  toast(allKnown ? `${n}:ans tabell avmarkerad` : `Hela ${n}:ans tabell avbockad! 🎉`);
+  save();
+  renderGrid();
+}
+
+function updateKnownProgress() {
+  let cells = 0;
+  for (const k of Object.keys(state.known)) {
+    const [a, b] = parseKey(k);
+    cells += a === b ? 1 : 2;
+  }
+  $("#known-fill").style.width = cells + "%";
+  $("#known-text").textContent =
+    cells === 100
+      ? "Alla 100 rutor avbockade – hela tabellen sitter! 🏆"
+      : `Du har bockat av ${cells} av 100 rutor.`;
+}
+
+/* ---------- Knepen ---------- */
+function renderMnemonicCards() {
+  const wrap = $("#mnemonic-cards");
+  wrap.innerHTML = MNEMONIC_ORDER.map((k) => {
+    const [a, b] = parseKey(k);
+    const m = MNEMONICS[k];
+    return `<div class="mnemo">
+      <div class="mnemo-fact">${a} × ${b} = ${a * b} · ${m.title}</div>
+      <p>${m.text}</p>
+    </div>`;
+  }).join("");
+}
+
+function bindTrainButtons() {
+  $$("[data-train]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const v = btn.dataset.train;
+      if (v === "hard") {
+        startRound({ facts: HARD_SIX, label: "⭐ De sex svåra" });
+      } else {
+        const n = Number(v);
+        startRound({ tables: [n], includeKnown: true, label: `${n}:ans tabell` });
+      }
+    });
+  });
+}
+
+/* ---------- Statistik ---------- */
+function heatClass(k) {
+  const s = getStat(k);
+  if (!s || !s.attempts) return "heat-none";
+  const wrongRate = s.wrong / s.attempts;
+  const med = medTime(k);
+  if (wrongRate >= 1 / 3 || (med != null && med >= SLOW_MS)) return "heat-bad";
+  if (wrongRate > 0 || med == null || med >= 3500) return "heat-mid";
+  return "heat-good";
+}
+
+function renderStats() {
+  const wrap = $("#stats-content");
+  const t = state.totals;
+
+  if (t.answers === 0) {
+    wrap.innerHTML = `
+      <div class="card center">
+        <h2>📊 Här kommer din statistik</h2>
+        <p class="muted">Kör en träningsrunda först! Sedan ser du här vilka tal du är snabb på – och vilka som behöver lite extra kärlek. ❤️</p>
+        <button class="btn" id="goto-train-btn">Till träningen 🚀</button>
+      </div>`;
+    $("#goto-train-btn").addEventListener("click", () => showTab("trana"));
+    return;
+  }
+
+  const pct = Math.round((t.correct / t.answers) * 100);
+  const tilesHtml = `
+    <div class="card">
+      <div class="tiles">
+        <div class="tile"><div class="val">${t.rounds}</div><div class="lbl">Rundor</div></div>
+        <div class="tile"><div class="val">${t.answers}</div><div class="lbl">Frågor</div></div>
+        <div class="tile"><div class="val">${pct}%</div><div class="lbl">Rätt</div></div>
+        <div class="tile"><div class="val">🔥 ${t.bestStreak}</div><div class="lbl">Bästa svit</div></div>
+      </div>
+    </div>`;
+
+  const weak = weakFacts().slice(0, 8);
+  let weakHtml;
+  if (weak.length) {
+    const rows = weak
+      .map((k) => {
+        const [a, b] = parseKey(k);
+        const s = getStat(k);
+        const med = medTime(k);
+        const badges = [];
+        if (s.wrong > 0) badges.push(`❌ ${s.wrong} fel`);
+        if (med != null && med > 4500) badges.push(`🐢 ca ${fmtSec(med)}`);
+        return `<div class="weak-row">
+          <span class="weak-fact">${a} × ${b} = ${a * b}</span>
+          <span class="weak-badges">${badges.join(" · ")}</span>
+        </div>`;
+      })
+      .join("");
+    weakHtml = `<div class="card">
+      <h2>🎯 Dina knepigaste just nu</h2>
+      <p class="muted">Talen som gått fel eller tagit längst tid. Täpp igen luckorna!</p>
+      ${rows}
+      <button class="btn big" id="train-gaps-btn">Träna på dessa 🎯</button>
+    </div>`;
+  } else {
+    weakHtml = `<div class="card">
+      <h2>🎯 Dina knepigaste just nu</h2>
+      <p class="muted">Inga tydliga luckor just nu – snyggt! Kör fler rundor så håller vi koll. 🌟</p>
+    </div>`;
+  }
+
+  const heatHtml = `<div class="card">
+    <h2>🗺️ Din karta</h2>
+    <p class="muted">Tryck på en ruta för detaljer.</p>
+    <div class="grid-wrap"><div class="mul-grid" id="heat-grid"></div></div>
+    <div class="legend">
+      <span>🟢 Säker</span><span>🟡 På gång</span><span>🔴 Träna mer</span><span>⚪ Inte testad</span>
+    </div>
+  </div>`;
+
+  const resetHtml = `<div class="card">
+    <h2>🧹 Börja om</h2>
+    <div class="reset-row">
+      <button class="btn danger-ghost" id="reset-stats-btn">Nollställ statistik</button>
+      <button class="btn danger-ghost" id="reset-known-btn">Nollställ avbockningar</button>
+    </div>
+  </div>`;
+
+  wrap.innerHTML = tilesHtml + weakHtml + heatHtml + resetHtml;
+
+  // värmekartan
+  const g = $("#heat-grid");
+  const corner = makeCell("×", "head corner");
+  corner.tabIndex = -1;
+  g.appendChild(corner);
+  for (let c = 1; c <= 10; c++) {
+    const h = makeCell(c, "head corner");
+    h.tabIndex = -1;
+    g.appendChild(h);
+  }
+  for (let r = 1; r <= 10; r++) {
+    const h = makeCell(r, "head corner");
+    h.tabIndex = -1;
+    g.appendChild(h);
+    for (let c = 1; c <= 10; c++) {
+      const k = keyOf(r, c);
+      const cell = makeCell(r * c, heatClass(k));
+      cell.setAttribute("aria-label", `${r} gånger ${c}`);
+      cell.addEventListener("click", () => {
+        const s = getStat(k);
+        if (!s || !s.attempts) {
+          toast(`${r} × ${c} = ${r * c} · inte testad än`);
+        } else {
+          const med = medTime(k);
+          toast(`${r} × ${c} = ${r * c} · ${s.attempts} svar, ${s.wrong} fel${med != null ? ` · ca ${fmtSec(med)}` : ""}`);
+        }
+      });
+      g.appendChild(cell);
+    }
+  }
+
+  if (weak.length) {
+    $("#train-gaps-btn").addEventListener("click", () =>
+      startRound({ facts: weak, label: "🎯 Mina luckor" })
+    );
+  }
+  $("#reset-stats-btn").addEventListener("click", () => {
+    if (confirm("Vill du nollställa all din statistik? Avbockningarna i tabellen behålls.")) {
+      state.stats = {};
+      state.totals = defaultState().totals;
+      save();
+      renderStats();
+      toast("Statistiken är nollställd.");
+    }
+  });
+  $("#reset-known-btn").addEventListener("click", () => {
+    if (confirm("Vill du ta bort alla dina avbockningar i tabellen?")) {
+      state.known = {};
+      save();
+      renderStats();
+      toast("Avbockningarna är borttagna.");
+    }
+  });
+}
+
+/* ---------- Start ---------- */
+function init() {
+  // flikar
+  $$(".tab-btn").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+  // uppstartsval
+  renderTableChips();
+  $("#chips-all").addEventListener("click", () => {
+    const all = state.settings.lastTables.length === 10;
+    state.settings.lastTables = all ? [] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    save();
+    renderTableChips();
+  });
+
+  const seg = $("#count-seg");
+  const syncSeg = () =>
+    Array.from(seg.children).forEach((b) =>
+      b.classList.toggle("on", Number(b.dataset.count) === state.settings.count)
+    );
+  syncSeg();
+  Array.from(seg.children).forEach((b) =>
+    b.addEventListener("click", () => {
+      state.settings.count = Number(b.dataset.count);
+      save();
+      syncSeg();
+    })
+  );
+
+  const incl = $("#include-known");
+  incl.checked = state.settings.includeKnown;
+  incl.addEventListener("change", () => {
+    state.settings.includeKnown = incl.checked;
+    save();
+  });
+
+  $("#start-btn").addEventListener("click", () => {
+    const tables = [...state.settings.lastTables].sort((x, y) => x - y);
+    if (tables.length === 0) {
+      toast("Välj minst en tabell först! 🙂");
+      return;
+    }
+    const label = tables.length === 10 ? "Hela tabellen" : "Tabell " + tables.join(", ");
+    startRound({ tables, includeKnown: state.settings.includeKnown, label });
+  });
+
+  $("#quick-hard").addEventListener("click", () =>
+    startRound({ facts: HARD_SIX, label: "⭐ De sex svåra" })
+  );
+  $("#quick-gaps").addEventListener("click", () => {
+    const weak = weakFacts().slice(0, 8);
+    if (weak.length === 0) {
+      toast("Träna lite först, så listar jag det du behöver öva mest! 🙂");
+      return;
+    }
+    startRound({ facts: weak, label: "🎯 Mina luckor" });
+  });
+
+  // quiz
+  const input = $("#q-input");
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, "");
+    const cur = quiz && quiz.current;
+    if (!cur || cur.done) return;
+    // rätta automatiskt när rätt antal siffror är skrivna
+    if (input.value.length >= String(cur.a * cur.b).length) submitAnswer(false);
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitAnswer(false);
+  });
+  $("#ok-btn").addEventListener("click", () => submitAnswer(false));
+  $("#idk-btn").addEventListener("click", () => submitAnswer(true));
+  $("#quit-btn").addEventListener("click", quitRound);
+
+  // tabellen
+  const showAns = $("#show-answers");
+  showAns.checked = state.settings.showAnswers;
+  showAns.addEventListener("change", () => {
+    state.settings.showAnswers = showAns.checked;
+    save();
+    renderGrid();
+  });
+
+  // knepen
+  renderMnemonicCards();
+  bindTrainButtons();
+}
+
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("DOMContentLoaded", init);
+}
+
+// gör logiken testbar i Node (används inte i webbläsaren)
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    keyOf, parseKey, median, tipFor, difficulty, weightOf,
+    weightedSample, buildQueue, heatClass, recordAnswer,
+    ALL_FACTS, HARD_SIX, MNEMONICS, state,
+  };
+}
