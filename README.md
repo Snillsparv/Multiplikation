@@ -5,6 +5,8 @@ utifrån Snillsparvs film om hur man lär sig tabellen på ett smart sätt:
 nästan allt går att räkna ut med enkla knep – det är bara sex tal som
 verkligen behöver memoreras.
 
+**👉 Träna här: https://snillsparv.github.io/Multiplikation/**
+
 Sidan funkar lika bra på mobil som på dator och kräver ingen inloggning.
 All träningsdata sparas lokalt i webbläsaren (localStorage).
 
