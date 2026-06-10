@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#4f46e5">
   <title>Multiplikationstabellen – mycket lättare än den verkar!</title>
-  <meta name="description" content="Träna multiplikationstabellen på ett smart sätt: lär dig knepen från filmen, bocka av det du redan kan och täpp igen dina luckor.">
+  <meta name="description" content="Träna multiplikationstabellen på ett smart sätt: lär dig knepen från filmen, markera det du inte kan än och täpp igen dina luckor.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%C3%97%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,15 +15,15 @@
 <body>
 
 <header class="app-header">
-  <h1>✖️ Multiplikationstabellen</h1>
+  <h1><span class="logo">×</span> Multiplikationstabellen</h1>
   <p class="tagline">Mycket lättare än den verkar!</p>
 </header>
 
 <nav class="tabs" aria-label="Huvudmeny">
-  <button class="tab-btn active" data-tab="trana"><span class="tab-emoji">🚀</span><span>Träna</span></button>
-  <button class="tab-btn" data-tab="tabell"><span class="tab-emoji">✅</span><span>Tabellen</span></button>
-  <button class="tab-btn" data-tab="tips"><span class="tab-emoji">💡</span><span>Knepen</span></button>
-  <button class="tab-btn" data-tab="stats"><span class="tab-emoji">📊</span><span>Statistik</span></button>
+  <button class="tab-btn active" data-tab="trana">Träna</button>
+  <button class="tab-btn" data-tab="tabell">Tabellen</button>
+  <button class="tab-btn" data-tab="tips">Knepen</button>
+  <button class="tab-btn" data-tab="stats">Statistik</button>
 </nav>
 
 <main>
@@ -33,16 +33,16 @@
 
     <div id="setup-screen">
       <div class="card">
-        <h2>⚡ Snabbstart</h2>
+        <h2>Snabbstart</h2>
         <p class="muted">Hoppa rakt in i det viktigaste:</p>
         <div class="quick-row">
-          <button class="btn quick" id="quick-hard">⭐ De sex svåra</button>
-          <button class="btn quick secondary" id="quick-gaps">🎯 Mina luckor</button>
+          <button class="btn memo" id="quick-hard">De sex svåra</button>
+          <button class="btn gaps" id="quick-gaps">Mina luckor</button>
         </div>
       </div>
 
       <div class="card">
-        <h2>🎛️ Eller välj själv</h2>
+        <h2>Eller välj själv</h2>
         <p class="muted">Vilka tabeller vill du träna på?</p>
         <div class="table-chips" id="table-chips"></div>
         <button class="linkish" id="chips-all">Markera alla / inga</button>
@@ -54,12 +54,7 @@
           <button data-count="20">20</button>
         </div>
 
-        <label class="check-row">
-          <input type="checkbox" id="include-known">
-          <span>Ta även med tal jag bockat av i tabellen</span>
-        </label>
-
-        <button class="btn big" id="start-btn">Starta! 🚀</button>
+        <button class="btn big" id="start-btn">Starta</button>
       </div>
     </div>
 
@@ -67,7 +62,7 @@
       <div class="q-top">
         <span id="q-progress-text">Fråga 1 av 10</span>
         <span id="q-streak" class="streak" hidden></span>
-        <button class="quit" id="quit-btn">✕ Avbryt</button>
+        <button class="quit" id="quit-btn">Avbryt</button>
       </div>
       <div class="progress-bar"><div class="progress-fill" id="q-progress-fill"></div></div>
       <p class="round-label" id="round-label"></p>
@@ -80,7 +75,7 @@
         </div>
         <div class="q-buttons" id="q-buttons">
           <button class="btn" id="ok-btn">Svara</button>
-          <button class="btn ghost" id="idk-btn">Vet inte 🤷</button>
+          <button class="btn ghost" id="idk-btn">Vet inte</button>
         </div>
         <div id="feedback" class="feedback" aria-live="polite"></div>
       </div>
@@ -92,8 +87,8 @@
   <!-- ===================== TABELLEN ===================== -->
   <section id="view-tabell" class="view">
     <div class="card">
-      <h2>✅ Bocka av det du redan kan</h2>
-      <p class="muted">Tryck på rutorna du kan – de blir gröna. Tryck på en siffra i kanten för att bocka av en hel tabell på en gång.</p>
+      <h2>Markera det du inte kan än</h2>
+      <p class="muted">Klicka på de tal du behöver träna på – de blir gula och dyker upp under Mina luckor. Klicka på en siffra i kanten för att markera en hel tabell.</p>
       <label class="check-row">
         <input type="checkbox" id="show-answers">
         <span>Visa svaren i rutorna</span>
@@ -102,89 +97,90 @@
         <div class="mul-grid" id="mul-grid"></div>
       </div>
       <div class="grid-progress">
-        <div class="progress-bar"><div class="progress-fill green" id="known-fill"></div></div>
-        <p id="known-text" class="center muted"></p>
+        <div class="progress-bar"><div class="progress-fill amber" id="hard-fill"></div></div>
+        <p id="hard-text" class="center muted"></p>
       </div>
     </div>
     <div class="card note-card">
-      💡 <strong>Kom ihåg:</strong> det spelar ingen roll i vilken ordning talen står.
-      4&nbsp;×&nbsp;6 är samma sak som 6&nbsp;×&nbsp;4, så när du bockar av den ena får du den andra på köpet!
+      <strong>Därför är halva tabellen grå:</strong> det spelar ingen roll i vilken ordning talen
+      står – 4&nbsp;×&nbsp;6 är samma sak som 6&nbsp;×&nbsp;4. Den grå halvan är bara en spegling,
+      så varje tal behöver bara finnas en gång.
     </div>
   </section>
 
   <!-- ===================== KNEPEN ===================== -->
   <section id="view-tips" class="view">
     <div class="card hero-card">
-      <h2>💡 Knepen från filmen</h2>
+      <h2>Knepen från filmen</h2>
       <p><strong>Hundra tal att lära sig utantill? Nej då!</strong> Tittar man närmre är det bara en handfull man faktiskt behöver lägga på minnet. Så här krymper vi högen:</p>
       <ol class="shrink-steps">
-        <li>🔄 Vänd på talen – nästan hälften försvinner</li>
-        <li>1️⃣ 🔟 Ettan och tian är gratis</li>
-        <li>5️⃣ 9️⃣ Femman och nian har superknep</li>
-        <li>2️⃣ 4️⃣ 3️⃣ Tvåan, fyran och trean är bara dubblor</li>
-        <li>⭐ Kvar: <strong>bara 6 tal att memorera!</strong> 🤯</li>
+        <li><span class="dot d-flip"></span>Vänd på talen – nästan hälften försvinner</li>
+        <li><span class="dot d-free"></span>Ettan och tian är gratis</li>
+        <li><span class="dot d-trick"></span>Femman och nian har superknep</li>
+        <li><span class="dot d-double"></span>Tvåan, fyran och trean är bara dubblor</li>
+        <li><span class="dot d-memo"></span>Kvar: <strong>bara 6 tal att memorera!</strong></li>
       </ol>
     </div>
 
     <div class="card tip-card">
-      <h3>🔄 Vänd på det!</h3>
+      <h3><span class="badge b-flip">×</span> Vänd på det!</h3>
       <p>Det spelar ingen roll i vilken ordning talen står: <strong>4 × 6 är samma sak som 6 × 4</strong>. Kan du den ena kan du också den andra – där försvinner nästan hälften av tabellen direkt!</p>
     </div>
 
     <div class="card tip-card">
-      <h3>1️⃣ Ettans tabell</h3>
+      <h3><span class="badge b-free">1</span> Ettans tabell</h3>
       <p>Multiplicerar du med 1 händer ingenting alls.</p>
       <p><span class="ex">1 × 7 = 7</span></p>
-      <button class="btn small secondary" data-train="1">Träna ettan →</button>
+      <button class="btn small secondary" data-train="1">Träna ettan</button>
     </div>
 
     <div class="card tip-card">
-      <h3>🔟 Tians tabell</h3>
+      <h3><span class="badge b-free">10</span> Tians tabell</h3>
       <p>Lägg bara till en nolla på slutet.</p>
       <p><span class="ex">7 × 10 = 70</span></p>
-      <button class="btn small secondary" data-train="10">Träna tian →</button>
+      <button class="btn small secondary" data-train="10">Träna tian</button>
     </div>
 
     <div class="card tip-card">
-      <h3>5️⃣ Femmans tabell</h3>
-      <p>Fem är hälften av tio! Halvera talet först och ta sedan gånger tio.</p>
+      <h3><span class="badge b-trick">5</span> Femmans tabell</h3>
+      <p>Fem är hälften av tio! Halvera talet och ta sedan gånger tio.</p>
       <p><span class="ex">8 × 5 = 4 × 10 = 40</span></p>
-      <button class="btn small secondary" data-train="5">Träna femman →</button>
+      <button class="btn small secondary" data-train="5">Träna femman</button>
     </div>
 
     <div class="card tip-card">
-      <h3>9️⃣ Nians tabell</h3>
+      <h3><span class="badge b-trick">9</span> Nians tabell</h3>
       <p>Svaret består alltid av två siffror som blir <strong>9 tillsammans</strong> – och den första siffran är alltid <strong>ett mindre</strong> än talet du gångrar med.</p>
       <p><span class="ex">7 × 9 → först 6, sedan 3 (6 + 3 = 9) → 63</span></p>
-      <button class="btn small secondary" data-train="9">Träna nian →</button>
+      <button class="btn small secondary" data-train="9">Träna nian</button>
     </div>
 
     <div class="card tip-card">
-      <h3>2️⃣ Tvåans tabell</h3>
+      <h3><span class="badge b-double">2</span> Tvåans tabell</h3>
       <p>Gånger två är bara att plussa talet med sig självt – enkel addition alltså!</p>
       <p><span class="ex">6 × 2 = 6 + 6 = 12</span></p>
-      <button class="btn small secondary" data-train="2">Träna tvåan →</button>
+      <button class="btn small secondary" data-train="2">Träna tvåan</button>
     </div>
 
     <div class="card tip-card">
-      <h3>4️⃣ Fyrans tabell</h3>
+      <h3><span class="badge b-double">4</span> Fyrans tabell</h3>
       <p>Dubbelt så mycket som tvåans tabell – dubbla talet två gånger.</p>
       <p><span class="ex">6 × 4: 6 → 12 → 24</span></p>
-      <button class="btn small secondary" data-train="4">Träna fyran →</button>
+      <button class="btn small secondary" data-train="4">Träna fyran</button>
     </div>
 
     <div class="card tip-card">
-      <h3>3️⃣ Treans tabell</h3>
+      <h3><span class="badge b-double">3</span> Treans tabell</h3>
       <p>Dubbla talet och lägg sedan till det en gång till.</p>
       <p><span class="ex">7 × 3: 7 + 7 = 14, och 14 + 7 = 21</span></p>
-      <button class="btn small secondary" data-train="3">Träna trean →</button>
+      <button class="btn small secondary" data-train="3">Träna trean</button>
     </div>
 
     <div class="card tip-card star-card">
-      <h3>⭐ De sex du behöver memorera</h3>
+      <h3><span class="badge b-memo">★</span> De sex du behöver memorera</h3>
       <p>Kvar är bara de här sex – och det är nästan alltid just de som spökar när man säger att man "inte kan multiplikationstabellen". En futtig utmaning jämfört med hundra tal! Plugga in dem med minnesreglerna här, så sitter hela tabellen.</p>
       <div id="mnemonic-cards"></div>
-      <button class="btn" data-train="hard">Träna de sex svåra ⭐</button>
+      <button class="btn memo" data-train="hard">Träna de sex svåra</button>
     </div>
   </section>
 

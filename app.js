@@ -38,15 +38,13 @@ const STORE_KEY = "snillsparv-multiplikation-v1";
 
 function defaultState() {
   return {
-    known: {},   // { "4x6": true } – avbockade tal
+    hard: {},    // { "6x7": true } – tal man markerat att man inte kan än
     stats: {},   // { "4x6": { attempts, wrong, times: [ms, ...] } }
     totals: { rounds: 0, answers: 0, correct: 0, bestStreak: 0 },
     settings: {
       lastTables: [],
       count: 10,
-      includeKnown: false,
       showAnswers: false,
-      commToasts: 0,
     },
   };
 }
@@ -59,7 +57,7 @@ function load() {
     const data = JSON.parse(raw);
     const d = defaultState();
     return {
-      known: data.known || d.known,
+      hard: data.hard || d.hard,
       stats: data.stats || d.stats,
       totals: Object.assign(d.totals, data.totals),
       settings: Object.assign(d.settings, data.settings),
@@ -117,18 +115,20 @@ function difficulty(k) {
   return d;
 }
 
+// Tal man själv markerat i tabellen prioriteras extra högt.
 function weightOf(k) {
-  return difficulty(k) * (state.known[k] ? 0.25 : 1);
+  return difficulty(k) * (state.hard[k] ? 2.5 : 1);
 }
 
-// Talen som gått fel eller segt – kandidater för "Mina luckor".
+// Talen för "Mina luckor": markerade i tabellen, ofta fel eller långsamma.
 function weakFacts() {
   return ALL_FACTS.filter((k) => {
+    if (state.hard[k]) return true;
     const s = getStat(k);
     if (!s || !s.attempts) return false;
     const med = medTime(k);
     return s.wrong > 0 || (med != null && med > 4500);
-  }).sort((x, y) => difficulty(y) - difficulty(x));
+  }).sort((x, y) => weightOf(y) - weightOf(x));
 }
 
 /* ---------- Tips & minnesregler (från filmen) ---------- */
@@ -316,22 +316,9 @@ function renderTableChips() {
 }
 
 function startRound(opts) {
-  let pool;
-  if (opts.facts) {
-    pool = [...new Set(opts.facts)];
-  } else {
-    pool = poolFromTables(opts.tables);
-    if (!opts.includeKnown) {
-      const left = pool.filter((k) => !state.known[k]);
-      if (left.length === 0) {
-        toast("Du har bockat av allt här – vi kör repetition! 💪");
-      } else {
-        pool = left;
-      }
-    }
-  }
+  const pool = opts.facts ? [...new Set(opts.facts)] : poolFromTables(opts.tables);
   if (pool.length === 0) {
-    toast("Välj minst en tabell först! 🙂");
+    toast("Välj minst en tabell först!");
     return;
   }
 
@@ -385,7 +372,7 @@ function showQuestion() {
 function updateStreakBadge() {
   const el = $("#q-streak");
   if (quiz && quiz.streak >= 2) {
-    el.textContent = `🔥 ${quiz.streak}`;
+    el.textContent = `Svit: ${quiz.streak}`;
     el.hidden = false;
   } else {
     el.hidden = true;
@@ -435,17 +422,17 @@ function submitAnswer(skip) {
 
   const fb = $("#feedback");
   if (correct && ms < SLOW_MS) {
-    fb.innerHTML = `<div class="fb ok">✅ Rätt!${ms < FAST_MS ? " Blixtsnabbt ⚡" : ""}</div>`;
+    fb.innerHTML = `<div class="fb ok">Rätt!${ms < FAST_MS ? " Blixtsnabbt!" : ""}</div>`;
     q.timer = setTimeout(nextQuestion, 800);
   } else {
     const tip = tipFor(cur.a, cur.b);
     const head = correct
-      ? `<div class="fb ok">✅ Rätt! Men den tog en liten stund 🐢</div>`
+      ? `<div class="fb ok">Rätt! Men den tog en liten stund.</div>`
       : `<div class="fb bad">${skip ? "" : "Inte riktigt – "}${cur.a} × ${cur.b} = <strong>${answer}</strong></div>`;
     fb.innerHTML =
       head +
-      `<div class="tip-box"><strong>💡 ${tip.title}</strong><br>${tip.text}</div>` +
-      `<button class="btn" id="next-btn">Nästa →</button>`;
+      `<div class="tip-box"><strong>${tip.title}</strong><br>${tip.text}</div>` +
+      `<button class="btn" id="next-btn">Nästa</button>`;
     $("#next-btn").addEventListener("click", nextQuestion);
     $("#next-btn").focus();
     if (!correct) requeue(cur.key);
@@ -473,21 +460,21 @@ function finishRound() {
   state.totals.rounds++;
   save();
 
-  const pct = q.answered ? q.corrects / q.answered : 0;
-  let emoji, headline;
-  if (pct === 1) { emoji = "🏆"; headline = "Alla rätt – WOW!"; }
-  else if (pct >= 0.8) { emoji = "🎉"; headline = "Snyggt jobbat!"; }
-  else if (pct >= 0.5) { emoji = "💪"; headline = "Bra kämpat!"; }
-  else { emoji = "🌱"; headline = "Bra start – knepen hjälper dig!"; }
+  const pct = q.answered ? Math.round((q.corrects / q.answered) * 100) : 0;
+  let headline, ringColor;
+  if (pct === 100) { headline = "Alla rätt!"; ringColor = "#16a34a"; }
+  else if (pct >= 80) { headline = "Snyggt jobbat!"; ringColor = "#16a34a"; }
+  else if (pct >= 50) { headline = "Bra kämpat!"; ringColor = "#d97706"; }
+  else { headline = "Bra start – knepen hjälper dig!"; ringColor = "#be185d"; }
 
   const correctTimes = q.results.filter((r) => r.correct);
-  let statPills = `<span class="pill">${q.corrects} av ${q.answered} rätt</span>`;
-  if (q.bestStreak >= 3) statPills += `<span class="pill">🔥 Svit: ${q.bestStreak}</span>`;
+  let statPills = "";
+  if (q.bestStreak >= 3) statPills += `<span class="pill">Svit: ${q.bestStreak}</span>`;
   if (correctTimes.length) {
     const mean = correctTimes.reduce((s, r) => s + r.ms, 0) / correctTimes.length;
-    statPills += `<span class="pill">⏱ Snitt: ${fmtSec(mean)}</span>`;
+    statPills += `<span class="pill">Snitt: ${fmtSec(mean)}</span>`;
     const fastest = correctTimes.reduce((m, r) => (r.ms < m.ms ? r : m));
-    statPills += `<span class="pill">⚡ Snabbast: ${fastest.a} × ${fastest.b} (${fmtSec(fastest.ms)})</span>`;
+    statPills += `<span class="pill">Snabbast: ${fastest.a} × ${fastest.b} (${fmtSec(fastest.ms)})</span>`;
   }
 
   const workKeys = [...new Set([...q.misses, ...q.slows])];
@@ -497,27 +484,35 @@ function finishRound() {
       .map((k) => {
         const [a, b] = parseKey(k);
         const tip = tipFor(a, b);
+        const tags =
+          (q.misses.has(k) ? `<span class="chip-tag chip-bad">fel</span>` : "") +
+          (q.slows.has(k) ? `<span class="chip-tag chip-slow">långsam</span>` : "");
         return `<div class="work-row">
-          <div class="work-fact">${a} × ${b} = ${a * b} ${q.misses.has(k) ? "❌" : "🐢"}</div>
-          <div class="work-tip">💡 ${tip.text}</div>
+          <div class="work-fact">${a} × ${b} = ${a * b}${tags}</div>
+          <div class="work-tip">${tip.text}</div>
         </div>`;
       })
       .join("");
-    workHtml = `<div class="card"><h2>🔍 Tal att jobba vidare på</h2>${rows}</div>`;
+    workHtml = `<div class="card"><h2>Tal att jobba vidare på</h2>${rows}</div>`;
   } else {
-    workHtml = `<div class="card center"><p style="margin:4px 0">Inga luckor i den här rundan – allt satt direkt! 🌟</p></div>`;
+    workHtml = `<div class="card center"><p style="margin:4px 0">Inga luckor i den här rundan – allt satt direkt!</p></div>`;
   }
 
   let buttons = "";
   if (workKeys.length) {
-    buttons += `<button class="btn" id="train-work-btn">🎯 Träna på dessa (${workKeys.length})</button>`;
+    buttons += `<button class="btn gaps" id="train-work-btn">Träna på dessa (${workKeys.length})</button>`;
   }
-  buttons += `<button class="btn ${workKeys.length ? "secondary" : ""}" id="again-btn">🔁 En runda till</button>`;
-  buttons += `<button class="btn ghost" id="change-btn">⚙️ Ändra val</button>`;
+  buttons += `<button class="btn ${workKeys.length ? "secondary" : ""}" id="again-btn">En runda till</button>`;
+  buttons += `<button class="btn ghost" id="change-btn">Ändra val</button>`;
 
   $("#result-screen").innerHTML = `
     <div class="card center">
-      <div class="result-emoji">${emoji}</div>
+      <div class="ring" style="--pct:${pct};--ring-color:${ringColor}">
+        <div class="ring-inner">
+          <span class="ring-big">${q.corrects}/${q.answered}</span>
+          <span class="ring-small">rätt</span>
+        </div>
+      </div>
       <h2>${headline}</h2>
       <div class="result-stats">${statPills}</div>
     </div>
@@ -531,14 +526,14 @@ function finishRound() {
 
   if (workKeys.length) {
     $("#train-work-btn").addEventListener("click", () =>
-      startRound({ facts: workKeys, label: "🎯 Dina luckor" })
+      startRound({ facts: workKeys, label: "Dina luckor" })
     );
   }
   $("#again-btn").addEventListener("click", () => startRound(opts));
   $("#change-btn").addEventListener("click", () => showScreen("setup"));
 }
 
-/* ---------- Tabellen (bocka av) ---------- */
+/* ---------- Tabellen (markera det man inte kan) ---------- */
 function makeCell(text, cls) {
   const el = document.createElement("button");
   el.className = "cell " + cls;
@@ -546,49 +541,81 @@ function makeCell(text, cls) {
   return el;
 }
 
-function renderGrid() {
-  const g = $("#mul-grid");
-  g.innerHTML = "";
+// Bygger rutnätet. Bara ena halvan är klickbar – resten är spegling och visas utgråad.
+// mode "mark": klicka för att markera tal man inte kan. mode "heat": färg efter statistik.
+function renderMulGrid(container, mode) {
+  container.innerHTML = "";
   const corner = makeCell("×", "head corner");
   corner.tabIndex = -1;
-  g.appendChild(corner);
+  container.appendChild(corner);
 
   for (let c = 1; c <= 10; c++) {
-    const h = makeCell(c, "head");
-    h.title = `Bocka av hela ${c}:ans tabell`;
-    h.addEventListener("click", () => toggleTable(c));
-    g.appendChild(h);
+    const h = makeCell(c, mode === "mark" ? "head" : "head corner");
+    if (mode === "mark") {
+      h.title = `Markera hela ${c}:ans tabell`;
+      h.addEventListener("click", () => toggleTable(c));
+    } else {
+      h.tabIndex = -1;
+    }
+    container.appendChild(h);
   }
+
   for (let r = 1; r <= 10; r++) {
-    const h = makeCell(r, "head");
-    h.title = `Bocka av hela ${r}:ans tabell`;
-    h.addEventListener("click", () => toggleTable(r));
-    g.appendChild(h);
+    const h = makeCell(r, mode === "mark" ? "head" : "head corner");
+    if (mode === "mark") {
+      h.title = `Markera hela ${r}:ans tabell`;
+      h.addEventListener("click", () => toggleTable(r));
+    } else {
+      h.tabIndex = -1;
+    }
+    container.appendChild(h);
 
     for (let c = 1; c <= 10; c++) {
       const k = keyOf(r, c);
-      const known = !!state.known[k];
-      const cell = makeCell(state.settings.showAnswers ? r * c : `${r}·${c}`, known ? "known" : "");
-      cell.setAttribute("aria-pressed", known);
-      cell.setAttribute("aria-label", `${r} gånger ${c}`);
-      cell.addEventListener("click", () => toggleKnown(r, c));
-      g.appendChild(cell);
+      const label = state.settings.showAnswers || mode === "heat" ? r * c : `${r}·${c}`;
+
+      // övre halvan (kolumn > rad) är bara en spegling – grå och oklickbar
+      if (c > r) {
+        const cell = makeCell(label, "mirror");
+        cell.disabled = true;
+        cell.tabIndex = -1;
+        container.appendChild(cell);
+        continue;
+      }
+
+      let cell;
+      if (mode === "mark") {
+        cell = makeCell(label, state.hard[k] ? "hard" : "");
+        cell.setAttribute("aria-pressed", !!state.hard[k]);
+        cell.setAttribute("aria-label", `${r} gånger ${c}`);
+        cell.addEventListener("click", () => toggleHard(r, c));
+      } else {
+        cell = makeCell(label, heatClass(k));
+        cell.setAttribute("aria-label", `${r} gånger ${c}`);
+        cell.addEventListener("click", () => {
+          const s = getStat(k);
+          if (!s || !s.attempts) {
+            toast(`${r} × ${c} = ${r * c} · inte testad än`);
+          } else {
+            const med = medTime(k);
+            toast(`${r} × ${c} = ${r * c} · ${s.attempts} svar, ${s.wrong} fel${med != null ? ` · ca ${fmtSec(med)}` : ""}`);
+          }
+        });
+      }
+      container.appendChild(cell);
     }
   }
-  updateKnownProgress();
 }
 
-function toggleKnown(r, c) {
+function renderGrid() {
+  renderMulGrid($("#mul-grid"), "mark");
+  updateHardProgress();
+}
+
+function toggleHard(r, c) {
   const k = keyOf(r, c);
-  if (state.known[k]) {
-    delete state.known[k];
-  } else {
-    state.known[k] = true;
-    if (r !== c && state.settings.commToasts < 3) {
-      state.settings.commToasts++;
-      toast(`${r} × ${c} = ${c} × ${r} – båda avbockade! 😉`);
-    }
-  }
+  if (state.hard[k]) delete state.hard[k];
+  else state.hard[k] = true;
   save();
   renderGrid();
 }
@@ -596,27 +623,23 @@ function toggleKnown(r, c) {
 function toggleTable(n) {
   const keys = [];
   for (let i = 1; i <= 10; i++) keys.push(keyOf(n, i));
-  const allKnown = keys.every((k) => state.known[k]);
+  const allMarked = keys.every((k) => state.hard[k]);
   for (const k of keys) {
-    if (allKnown) delete state.known[k];
-    else state.known[k] = true;
+    if (allMarked) delete state.hard[k];
+    else state.hard[k] = true;
   }
-  toast(allKnown ? `${n}:ans tabell avmarkerad` : `Hela ${n}:ans tabell avbockad! 🎉`);
+  toast(allMarked ? `${n}:ans tabell avmarkerad` : `Hela ${n}:ans tabell markerad`);
   save();
   renderGrid();
 }
 
-function updateKnownProgress() {
-  let cells = 0;
-  for (const k of Object.keys(state.known)) {
-    const [a, b] = parseKey(k);
-    cells += a === b ? 1 : 2;
-  }
-  $("#known-fill").style.width = cells + "%";
-  $("#known-text").textContent =
-    cells === 100
-      ? "Alla 100 rutor avbockade – hela tabellen sitter! 🏆"
-      : `Du har bockat av ${cells} av 100 rutor.`;
+function updateHardProgress() {
+  const marked = Object.keys(state.hard).length;
+  $("#hard-fill").style.width = (marked / ALL_FACTS.length) * 100 + "%";
+  $("#hard-text").textContent =
+    marked === 0
+      ? "Inget markerat ännu. Klicka på talen du inte kan, så blir de dina träningsmål."
+      : `${marked} av ${ALL_FACTS.length} tal markerade – du hittar dem under Mina luckor.`;
 }
 
 /* ---------- Knepen ---------- */
@@ -637,10 +660,10 @@ function bindTrainButtons() {
     btn.addEventListener("click", () => {
       const v = btn.dataset.train;
       if (v === "hard") {
-        startRound({ facts: HARD_SIX, label: "⭐ De sex svåra" });
+        startRound({ facts: HARD_SIX, label: "De sex svåra" });
       } else {
         const n = Number(v);
-        startRound({ tables: [n], includeKnown: true, label: `${n}:ans tabell` });
+        startRound({ tables: [n], label: `${n}:ans tabell` });
       }
     });
   });
@@ -661,25 +684,25 @@ function renderStats() {
   const wrap = $("#stats-content");
   const t = state.totals;
 
-  if (t.answers === 0) {
+  if (t.answers === 0 && Object.keys(state.hard).length === 0) {
     wrap.innerHTML = `
       <div class="card center">
-        <h2>📊 Här kommer din statistik</h2>
-        <p class="muted">Kör en träningsrunda först! Sedan ser du här vilka tal du är snabb på – och vilka som behöver lite extra kärlek. ❤️</p>
-        <button class="btn" id="goto-train-btn">Till träningen 🚀</button>
+        <h2>Här kommer din statistik</h2>
+        <p class="muted">Kör en träningsrunda först! Sedan ser du här vilka tal du är snabb på – och vilka som behöver extra träning.</p>
+        <button class="btn" id="goto-train-btn">Till träningen</button>
       </div>`;
     $("#goto-train-btn").addEventListener("click", () => showTab("trana"));
     return;
   }
 
-  const pct = Math.round((t.correct / t.answers) * 100);
+  const pct = t.answers ? Math.round((t.correct / t.answers) * 100) : 0;
   const tilesHtml = `
     <div class="card">
       <div class="tiles">
         <div class="tile"><div class="val">${t.rounds}</div><div class="lbl">Rundor</div></div>
         <div class="tile"><div class="val">${t.answers}</div><div class="lbl">Frågor</div></div>
         <div class="tile"><div class="val">${pct}%</div><div class="lbl">Rätt</div></div>
-        <div class="tile"><div class="val">🔥 ${t.bestStreak}</div><div class="lbl">Bästa svit</div></div>
+        <div class="tile"><div class="val">${t.bestStreak}</div><div class="lbl">Bästa svit</div></div>
       </div>
     </div>`;
 
@@ -691,85 +714,60 @@ function renderStats() {
         const [a, b] = parseKey(k);
         const s = getStat(k);
         const med = medTime(k);
-        const badges = [];
-        if (s.wrong > 0) badges.push(`❌ ${s.wrong} fel`);
-        if (med != null && med > 4500) badges.push(`🐢 ca ${fmtSec(med)}`);
+        let badges = "";
+        if (state.hard[k]) badges += `<span class="chip-tag chip-mark">markerad</span>`;
+        if (s && s.wrong > 0) badges += `<span class="chip-tag chip-bad">${s.wrong} fel</span>`;
+        if (med != null && med > 4500) badges += `<span class="chip-tag chip-slow">ca ${fmtSec(med)}</span>`;
         return `<div class="weak-row">
           <span class="weak-fact">${a} × ${b} = ${a * b}</span>
-          <span class="weak-badges">${badges.join(" · ")}</span>
+          <span class="weak-badges">${badges}</span>
         </div>`;
       })
       .join("");
     weakHtml = `<div class="card">
-      <h2>🎯 Dina knepigaste just nu</h2>
-      <p class="muted">Talen som gått fel eller tagit längst tid. Täpp igen luckorna!</p>
+      <h2>Dina luckor just nu</h2>
+      <p class="muted">Tal du markerat i tabellen, och tal som gått fel eller tagit lång tid.</p>
       ${rows}
-      <button class="btn big" id="train-gaps-btn">Träna på dessa 🎯</button>
+      <button class="btn big gaps" id="train-gaps-btn">Träna på dessa</button>
     </div>`;
   } else {
     weakHtml = `<div class="card">
-      <h2>🎯 Dina knepigaste just nu</h2>
-      <p class="muted">Inga tydliga luckor just nu – snyggt! Kör fler rundor så håller vi koll. 🌟</p>
+      <h2>Dina luckor just nu</h2>
+      <p class="muted">Inga tydliga luckor just nu – snyggt! Kör fler rundor så håller vi koll.</p>
     </div>`;
   }
 
   const heatHtml = `<div class="card">
-    <h2>🗺️ Din karta</h2>
-    <p class="muted">Tryck på en ruta för detaljer.</p>
+    <h2>Din karta</h2>
+    <p class="muted">Färgen visar hur det går för varje tal. Tryck på en ruta för detaljer.</p>
     <div class="grid-wrap"><div class="mul-grid" id="heat-grid"></div></div>
     <div class="legend">
-      <span>🟢 Säker</span><span>🟡 På gång</span><span>🔴 Träna mer</span><span>⚪ Inte testad</span>
+      <span><i class="dot l-good"></i>Säker</span>
+      <span><i class="dot l-mid"></i>På gång</span>
+      <span><i class="dot l-bad"></i>Träna mer</span>
+      <span><i class="dot l-none"></i>Inte testad</span>
     </div>
   </div>`;
 
   const resetHtml = `<div class="card">
-    <h2>🧹 Börja om</h2>
+    <h2>Börja om</h2>
     <div class="reset-row">
       <button class="btn danger-ghost" id="reset-stats-btn">Nollställ statistik</button>
-      <button class="btn danger-ghost" id="reset-known-btn">Nollställ avbockningar</button>
+      <button class="btn danger-ghost" id="reset-hard-btn">Nollställ markeringar</button>
     </div>
   </div>`;
 
   wrap.innerHTML = tilesHtml + weakHtml + heatHtml + resetHtml;
 
-  // värmekartan
-  const g = $("#heat-grid");
-  const corner = makeCell("×", "head corner");
-  corner.tabIndex = -1;
-  g.appendChild(corner);
-  for (let c = 1; c <= 10; c++) {
-    const h = makeCell(c, "head corner");
-    h.tabIndex = -1;
-    g.appendChild(h);
-  }
-  for (let r = 1; r <= 10; r++) {
-    const h = makeCell(r, "head corner");
-    h.tabIndex = -1;
-    g.appendChild(h);
-    for (let c = 1; c <= 10; c++) {
-      const k = keyOf(r, c);
-      const cell = makeCell(r * c, heatClass(k));
-      cell.setAttribute("aria-label", `${r} gånger ${c}`);
-      cell.addEventListener("click", () => {
-        const s = getStat(k);
-        if (!s || !s.attempts) {
-          toast(`${r} × ${c} = ${r * c} · inte testad än`);
-        } else {
-          const med = medTime(k);
-          toast(`${r} × ${c} = ${r * c} · ${s.attempts} svar, ${s.wrong} fel${med != null ? ` · ca ${fmtSec(med)}` : ""}`);
-        }
-      });
-      g.appendChild(cell);
-    }
-  }
+  renderMulGrid($("#heat-grid"), "heat");
 
   if (weak.length) {
     $("#train-gaps-btn").addEventListener("click", () =>
-      startRound({ facts: weak, label: "🎯 Mina luckor" })
+      startRound({ facts: weak, label: "Mina luckor" })
     );
   }
   $("#reset-stats-btn").addEventListener("click", () => {
-    if (confirm("Vill du nollställa all din statistik? Avbockningarna i tabellen behålls.")) {
+    if (confirm("Vill du nollställa all din statistik? Markeringarna i tabellen behålls.")) {
       state.stats = {};
       state.totals = defaultState().totals;
       save();
@@ -777,12 +775,12 @@ function renderStats() {
       toast("Statistiken är nollställd.");
     }
   });
-  $("#reset-known-btn").addEventListener("click", () => {
-    if (confirm("Vill du ta bort alla dina avbockningar i tabellen?")) {
-      state.known = {};
+  $("#reset-hard-btn").addEventListener("click", () => {
+    if (confirm("Vill du ta bort alla dina markeringar i tabellen?")) {
+      state.hard = {};
       save();
       renderStats();
-      toast("Avbockningarna är borttagna.");
+      toast("Markeringarna är borttagna.");
     }
   });
 }
@@ -815,33 +813,26 @@ function init() {
     })
   );
 
-  const incl = $("#include-known");
-  incl.checked = state.settings.includeKnown;
-  incl.addEventListener("change", () => {
-    state.settings.includeKnown = incl.checked;
-    save();
-  });
-
   $("#start-btn").addEventListener("click", () => {
     const tables = [...state.settings.lastTables].sort((x, y) => x - y);
     if (tables.length === 0) {
-      toast("Välj minst en tabell först! 🙂");
+      toast("Välj minst en tabell först!");
       return;
     }
     const label = tables.length === 10 ? "Hela tabellen" : "Tabell " + tables.join(", ");
-    startRound({ tables, includeKnown: state.settings.includeKnown, label });
+    startRound({ tables, label });
   });
 
   $("#quick-hard").addEventListener("click", () =>
-    startRound({ facts: HARD_SIX, label: "⭐ De sex svåra" })
+    startRound({ facts: HARD_SIX, label: "De sex svåra" })
   );
   $("#quick-gaps").addEventListener("click", () => {
     const weak = weakFacts().slice(0, 8);
     if (weak.length === 0) {
-      toast("Träna lite först, så listar jag det du behöver öva mest! 🙂");
+      toast("Markera tal i tabellen eller kör en runda först, så vet jag vad du behöver öva på.");
       return;
     }
-    startRound({ facts: weak, label: "🎯 Mina luckor" });
+    startRound({ facts: weak, label: "Mina luckor" });
   });
 
   // quiz
@@ -881,7 +872,7 @@ if (typeof document !== "undefined" && document.addEventListener) {
 // gör logiken testbar i Node (används inte i webbläsaren)
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    keyOf, parseKey, median, tipFor, difficulty, weightOf,
+    keyOf, parseKey, median, tipFor, difficulty, weightOf, weakFacts,
     weightedSample, buildQueue, heatClass, recordAnswer,
     ALL_FACTS, HARD_SIX, MNEMONICS, state,
   };
