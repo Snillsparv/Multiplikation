@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#4f46e5">
   <title>Multiplikationstabellen – mycket lättare än den verkar!</title>
-  <meta name="description" content="Träna multiplikationstabellen på ett smart sätt: lär dig knepen från filmen, markera det du inte kan än och täpp igen dina luckor.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3E%C3%97%3C/text%3E%3C/svg%3E">
+  <meta name="description" content="Träna multiplikationstabellen på ett smart sätt: lär dig knepen från filmen, bocka av det du redan kan och täpp igen dina luckor.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Crect x='18' y='18' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='54' y='18' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='18' y='54' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='54' y='54' width='28' height='28' rx='8' fill='%23fbbf24'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
 <body>
 
 <header class="app-header">
-  <h1><span class="logo">×</span> Multiplikationstabellen</h1>
+  <h1><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="1" y="1" width="10" height="10" rx="3" fill="rgba(255,255,255,.55)"/><rect x="13" y="1" width="10" height="10" rx="3" fill="rgba(255,255,255,.55)"/><rect x="1" y="13" width="10" height="10" rx="3" fill="rgba(255,255,255,.55)"/><rect x="13" y="13" width="10" height="10" rx="3" fill="#fbbf24"/></svg></span> Multiplikationstabellen</h1>
   <p class="tagline">Mycket lättare än den verkar!</p>
 </header>
 
@@ -87,8 +87,8 @@
   <!-- ===================== TABELLEN ===================== -->
   <section id="view-tabell" class="view">
     <div class="card">
-      <h2>Markera det du inte kan än</h2>
-      <p class="muted">Klicka på de tal du behöver träna på – de blir gula och dyker upp under Mina luckor. Klicka på en siffra i kanten för att markera en hel tabell.</p>
+      <h2>Bocka av det du kan</h2>
+      <p class="muted">Klicka på de tal du redan kan, så stryks de. Kvar står det du behöver öva på – och det är bara de talen du får frågor om när du tränar. Klicka på en siffra i kanten för att bocka av en hel tabell.</p>
       <label class="check-row">
         <input type="checkbox" id="show-answers">
         <span>Visa svaren i rutorna</span>
@@ -97,8 +97,8 @@
         <div class="mul-grid" id="mul-grid"></div>
       </div>
       <div class="grid-progress">
-        <div class="progress-bar"><div class="progress-fill amber" id="hard-fill"></div></div>
-        <p id="hard-text" class="center muted"></p>
+        <div class="progress-bar"><div class="progress-fill green" id="known-fill"></div></div>
+        <p id="known-text" class="center muted"></p>
       </div>
     </div>
     <div class="card note-card">

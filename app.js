@@ -38,7 +38,7 @@ const STORE_KEY = "snillsparv-multiplikation-v1";
 
 function defaultState() {
   return {
-    hard: {},    // { "6x7": true } – tal man markerat att man inte kan än
+    known: {},   // { "4x6": true } – tal man bockat av att man redan kan
     stats: {},   // { "4x6": { attempts, wrong, times: [ms, ...] } }
     totals: { rounds: 0, answers: 0, correct: 0, bestStreak: 0 },
     settings: {
@@ -57,7 +57,7 @@ function load() {
     const data = JSON.parse(raw);
     const d = defaultState();
     return {
-      hard: data.hard || d.hard,
+      known: data.known || d.known,
       stats: data.stats || d.stats,
       totals: Object.assign(d.totals, data.totals),
       settings: Object.assign(d.settings, data.settings),
@@ -115,20 +115,19 @@ function difficulty(k) {
   return d;
 }
 
-// Tal man själv markerat i tabellen prioriteras extra högt.
+// Tal man bockat av i tabellen tonas ner rejält om de ändå dyker upp.
 function weightOf(k) {
-  return difficulty(k) * (state.hard[k] ? 2.5 : 1);
+  return difficulty(k) * (state.known[k] ? 0.25 : 1);
 }
 
-// Talen för "Mina luckor": markerade i tabellen, ofta fel eller långsamma.
+// Talen för "Mina luckor": ofta fel eller långsamma.
 function weakFacts() {
   return ALL_FACTS.filter((k) => {
-    if (state.hard[k]) return true;
     const s = getStat(k);
     if (!s || !s.attempts) return false;
     const med = medTime(k);
     return s.wrong > 0 || (med != null && med > 4500);
-  }).sort((x, y) => weightOf(y) - weightOf(x));
+  }).sort((x, y) => difficulty(y) - difficulty(x));
 }
 
 /* ---------- Tips & minnesregler (från filmen) ---------- */
@@ -316,10 +315,17 @@ function renderTableChips() {
 }
 
 function startRound(opts) {
-  const pool = opts.facts ? [...new Set(opts.facts)] : poolFromTables(opts.tables);
+  let pool = opts.facts ? [...new Set(opts.facts)] : poolFromTables(opts.tables);
   if (pool.length === 0) {
     toast("Välj minst en tabell först!");
     return;
+  }
+
+  // avbockade tal hoppas över – om allt är avbockat blir det repetition
+  if (!opts.keepKnown) {
+    const left = pool.filter((k) => !state.known[k]);
+    if (left.length === 0) toast("Allt här är redan avbockat – vi kör repetition!");
+    else pool = left;
   }
 
   const count = state.settings.count;
@@ -526,14 +532,14 @@ function finishRound() {
 
   if (workKeys.length) {
     $("#train-work-btn").addEventListener("click", () =>
-      startRound({ facts: workKeys, label: "Dina luckor" })
+      startRound({ facts: workKeys, keepKnown: true, label: "Dina luckor" })
     );
   }
   $("#again-btn").addEventListener("click", () => startRound(opts));
   $("#change-btn").addEventListener("click", () => showScreen("setup"));
 }
 
-/* ---------- Tabellen (markera det man inte kan) ---------- */
+/* ---------- Tabellen (bocka av det man kan) ---------- */
 function makeCell(text, cls) {
   const el = document.createElement("button");
   el.className = "cell " + cls;
@@ -542,7 +548,7 @@ function makeCell(text, cls) {
 }
 
 // Bygger rutnätet. Bara ena halvan är klickbar – resten är spegling och visas utgråad.
-// mode "mark": klicka för att markera tal man inte kan. mode "heat": färg efter statistik.
+// mode "mark": klicka för att bocka av tal man kan. mode "heat": färg efter statistik.
 function renderMulGrid(container, mode) {
   container.innerHTML = "";
   const corner = makeCell("×", "head corner");
@@ -552,7 +558,7 @@ function renderMulGrid(container, mode) {
   for (let c = 1; c <= 10; c++) {
     const h = makeCell(c, mode === "mark" ? "head" : "head corner");
     if (mode === "mark") {
-      h.title = `Markera hela ${c}:ans tabell`;
+      h.title = `Bocka av hela ${c}:ans tabell`;
       h.addEventListener("click", () => toggleTable(c));
     } else {
       h.tabIndex = -1;
@@ -563,7 +569,7 @@ function renderMulGrid(container, mode) {
   for (let r = 1; r <= 10; r++) {
     const h = makeCell(r, mode === "mark" ? "head" : "head corner");
     if (mode === "mark") {
-      h.title = `Markera hela ${r}:ans tabell`;
+      h.title = `Bocka av hela ${r}:ans tabell`;
       h.addEventListener("click", () => toggleTable(r));
     } else {
       h.tabIndex = -1;
@@ -585,10 +591,10 @@ function renderMulGrid(container, mode) {
 
       let cell;
       if (mode === "mark") {
-        cell = makeCell(label, state.hard[k] ? "hard" : "");
-        cell.setAttribute("aria-pressed", !!state.hard[k]);
+        cell = makeCell(label, state.known[k] ? "known" : "");
+        cell.setAttribute("aria-pressed", !!state.known[k]);
         cell.setAttribute("aria-label", `${r} gånger ${c}`);
-        cell.addEventListener("click", () => toggleHard(r, c));
+        cell.addEventListener("click", () => toggleKnown(r, c));
       } else {
         cell = makeCell(label, heatClass(k));
         cell.setAttribute("aria-label", `${r} gånger ${c}`);
@@ -609,13 +615,13 @@ function renderMulGrid(container, mode) {
 
 function renderGrid() {
   renderMulGrid($("#mul-grid"), "mark");
-  updateHardProgress();
+  updateKnownProgress();
 }
 
-function toggleHard(r, c) {
+function toggleKnown(r, c) {
   const k = keyOf(r, c);
-  if (state.hard[k]) delete state.hard[k];
-  else state.hard[k] = true;
+  if (state.known[k]) delete state.known[k];
+  else state.known[k] = true;
   save();
   renderGrid();
 }
@@ -623,23 +629,25 @@ function toggleHard(r, c) {
 function toggleTable(n) {
   const keys = [];
   for (let i = 1; i <= 10; i++) keys.push(keyOf(n, i));
-  const allMarked = keys.every((k) => state.hard[k]);
+  const allKnown = keys.every((k) => state.known[k]);
   for (const k of keys) {
-    if (allMarked) delete state.hard[k];
-    else state.hard[k] = true;
+    if (allKnown) delete state.known[k];
+    else state.known[k] = true;
   }
-  toast(allMarked ? `${n}:ans tabell avmarkerad` : `Hela ${n}:ans tabell markerad`);
+  toast(allKnown ? `${n}:ans tabell avmarkerad` : `Hela ${n}:ans tabell avbockad`);
   save();
   renderGrid();
 }
 
-function updateHardProgress() {
-  const marked = Object.keys(state.hard).length;
-  $("#hard-fill").style.width = (marked / ALL_FACTS.length) * 100 + "%";
-  $("#hard-text").textContent =
-    marked === 0
-      ? "Inget markerat ännu. Klicka på talen du inte kan, så blir de dina träningsmål."
-      : `${marked} av ${ALL_FACTS.length} tal markerade – du hittar dem under Mina luckor.`;
+function updateKnownProgress() {
+  const known = Object.keys(state.known).length;
+  $("#known-fill").style.width = (known / ALL_FACTS.length) * 100 + "%";
+  $("#known-text").textContent =
+    known === 0
+      ? "Inget avbockat ännu. Klicka på talen du redan kan, så ser du vad som är kvar att öva på."
+      : known === ALL_FACTS.length
+        ? "Alla 55 tal avbockade – hela tabellen sitter!"
+        : `${known} av ${ALL_FACTS.length} tal avbockade – kvar att öva på: ${ALL_FACTS.length - known}.`;
 }
 
 /* ---------- Knepen ---------- */
@@ -684,7 +692,7 @@ function renderStats() {
   const wrap = $("#stats-content");
   const t = state.totals;
 
-  if (t.answers === 0 && Object.keys(state.hard).length === 0) {
+  if (t.answers === 0) {
     wrap.innerHTML = `
       <div class="card center">
         <h2>Här kommer din statistik</h2>
@@ -715,7 +723,6 @@ function renderStats() {
         const s = getStat(k);
         const med = medTime(k);
         let badges = "";
-        if (state.hard[k]) badges += `<span class="chip-tag chip-mark">markerad</span>`;
         if (s && s.wrong > 0) badges += `<span class="chip-tag chip-bad">${s.wrong} fel</span>`;
         if (med != null && med > 4500) badges += `<span class="chip-tag chip-slow">ca ${fmtSec(med)}</span>`;
         return `<div class="weak-row">
@@ -726,7 +733,7 @@ function renderStats() {
       .join("");
     weakHtml = `<div class="card">
       <h2>Dina luckor just nu</h2>
-      <p class="muted">Tal du markerat i tabellen, och tal som gått fel eller tagit lång tid.</p>
+      <p class="muted">Talen som gått fel eller tagit längst tid. Täpp igen luckorna!</p>
       ${rows}
       <button class="btn big gaps" id="train-gaps-btn">Träna på dessa</button>
     </div>`;
@@ -753,7 +760,7 @@ function renderStats() {
     <h2>Börja om</h2>
     <div class="reset-row">
       <button class="btn danger-ghost" id="reset-stats-btn">Nollställ statistik</button>
-      <button class="btn danger-ghost" id="reset-hard-btn">Nollställ markeringar</button>
+      <button class="btn danger-ghost" id="reset-known-btn">Nollställ avbockningar</button>
     </div>
   </div>`;
 
@@ -763,11 +770,11 @@ function renderStats() {
 
   if (weak.length) {
     $("#train-gaps-btn").addEventListener("click", () =>
-      startRound({ facts: weak, label: "Mina luckor" })
+      startRound({ facts: weak, keepKnown: true, label: "Mina luckor" })
     );
   }
   $("#reset-stats-btn").addEventListener("click", () => {
-    if (confirm("Vill du nollställa all din statistik? Markeringarna i tabellen behålls.")) {
+    if (confirm("Vill du nollställa all din statistik? Avbockningarna i tabellen behålls.")) {
       state.stats = {};
       state.totals = defaultState().totals;
       save();
@@ -775,12 +782,12 @@ function renderStats() {
       toast("Statistiken är nollställd.");
     }
   });
-  $("#reset-hard-btn").addEventListener("click", () => {
-    if (confirm("Vill du ta bort alla dina markeringar i tabellen?")) {
-      state.hard = {};
+  $("#reset-known-btn").addEventListener("click", () => {
+    if (confirm("Vill du ta bort alla dina avbockningar i tabellen?")) {
+      state.known = {};
       save();
       renderStats();
-      toast("Markeringarna är borttagna.");
+      toast("Avbockningarna är borttagna.");
     }
   });
 }
@@ -829,10 +836,10 @@ function init() {
   $("#quick-gaps").addEventListener("click", () => {
     const weak = weakFacts().slice(0, 8);
     if (weak.length === 0) {
-      toast("Markera tal i tabellen eller kör en runda först, så vet jag vad du behöver öva på.");
+      toast("Kör en träningsrunda först, så ser jag vad du behöver öva på.");
       return;
     }
-    startRound({ facts: weak, label: "Mina luckor" });
+    startRound({ facts: weak, keepKnown: true, label: "Mina luckor" });
   });
 
   // quiz

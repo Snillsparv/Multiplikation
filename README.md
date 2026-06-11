@@ -15,15 +15,16 @@ All träningsdata sparas lokalt i webbläsaren (localStorage).
 - **Träna** – välj vilka tabeller du vill öva på (1–10), hur många frågor
   du vill ha, eller hoppa direkt på *De sex svåra* (6×6, 6×7, 6×8, 7×7, 7×8, 8×8).
 - **Tabellen** – halva tabellen är utgråad, eftersom 6×4 är samma sak som
-  4×6 (kommutativa lagen). Klicka på de tal du inte kan än – de markeras
-  och blir automatiskt dina träningsmål under *Mina luckor*.
+  4×6 (kommutativa lagen). Bocka av de tal du redan kan, så stryks de –
+  kvar står det du behöver öva på, och det är bara de talen du får frågor
+  om när du tränar.
 - **Knepen** – alla tips från filmen: ettan, tian, femman, nian, tvåan,
   fyran och trean, plus minnesreglerna för de sex svåra. När du svarar fel
   eller långsamt i träningen dyker rätt knep upp direkt, anpassat till just
   det talet.
 - **Statistik** – sidan mäter hur snabbt du svarar och håller koll på vad
-  som går fel. Under *Mina luckor* kan du träna specifikt på de tal du
-  markerat eller är långsammast på, och kartan visar hela tabellen i grönt,
+  som går fel. Under *Mina luckor* kan du träna specifikt på de tal du är
+  långsammast eller osäkrast på, och kartan visar hela tabellen i grönt,
   gult och rött.
 - Tal som blir fel under en runda kommer tillbaka lite senare i samma
   runda, så att de hinner fastna.
