@@ -651,13 +651,19 @@ body.tbl-fancy #mul-grid .cell.known {
   width: 250px;
   max-width: 72%;
   height: auto;
-  margin: 4px auto -6px;
+  margin: 4px auto -40px;
   position: relative;
-  z-index: 2;
+  z-index: 1;                 /* bakom kortet */
   pointer-events: none;
-  filter: drop-shadow(0 6px 9px rgba(31, 41, 90, 0.18));
+  transform: translateY(32px); /* gömd lite bakom kortet från start ... */
+  transition: transform 0.7s cubic-bezier(0.18, 0.9, 0.3, 1.12);
+  filter: drop-shadow(0 4px 7px rgba(31, 41, 90, 0.16));
 }
-.contact .card { position: relative; z-index: 1; }
+.contact.in-view .contact-photo { transform: translateY(0); } /* ... kikar upp när man skrollar dit */
+.contact .card { position: relative; z-index: 2; } /* kortet framför */
+@media (prefers-reduced-motion: reduce) {
+  .contact-photo { transform: none; }
+}
 .contact a { color: var(--primary); font-weight: 800; word-break: break-word; }
 .field { display: block; margin: 12px 0; }
 .field span { display: block; font-size: 0.9rem; font-weight: 800; margin-bottom: 5px; }

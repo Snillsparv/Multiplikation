@@ -897,6 +897,23 @@ function bindContactForm() {
   });
 }
 
+// Låter bilden kika upp bakom kontaktkortet när kontaktdelen skrollas i bild.
+function setupContactPeek() {
+  const contact = $(".contact");
+  if (!contact) return;
+  if (!("IntersectionObserver" in window)) {
+    contact.classList.add("in-view");
+    return;
+  }
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) contact.classList.toggle("in-view", e.isIntersecting);
+    },
+    { threshold: 0.15 }
+  );
+  io.observe(contact);
+}
+
 function init() {
   // slå på/av det "fancy" utseendet på Tabellen (se FANCY_TABLE ovan)
   document.body.classList.toggle("tbl-fancy", FANCY_TABLE);
@@ -981,6 +998,9 @@ function init() {
 
   // kontaktformulär
   bindContactForm();
+
+  // bilden som kikar upp bakom kontaktkortet
+  setupContactPeek();
 }
 
 if (typeof document !== "undefined" && document.addEventListener) {
