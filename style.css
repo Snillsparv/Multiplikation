@@ -683,6 +683,9 @@ body.tbl-fancy #mul-grid .cell.known {
 .field input:focus,
 .field textarea:focus { outline: none; border-color: var(--primary); }
 .contact-note { font-size: 0.85rem; color: var(--muted); text-align: center; margin: 10px 0 0; }
+.contact-note a { color: var(--primary); font-weight: 800; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.btn:disabled { opacity: 0.6; cursor: default; }
 
 /* ===== Större skärmar ===== */
 @media (min-width: 720px) {

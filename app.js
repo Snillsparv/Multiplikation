@@ -876,24 +876,50 @@ function renderStats() {
 }
 
 /* ---------- Start ---------- */
-/* ---------- Kontaktformulär (öppnar besökarens e-postapp) ---------- */
+/* ---------- Kontaktformulär (skickar direkt via FormSubmit) ---------- */
 function bindContactForm() {
   const form = $("#contact-form");
   if (!form) return;
   const note = $("#contact-note");
-  form.addEventListener("submit", (e) => {
+  const btn = form.querySelector("button[type=submit]");
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = $("#contact-email").value.trim();
     const msg = $("#contact-message").value.trim();
+    const honey = $("#contact-honey") ? $("#contact-honey").value : "";
     if (!msg) {
       note.textContent = "Skriv gärna ett meddelande först.";
       $("#contact-message").focus();
       return;
     }
-    const subject = encodeURIComponent("Hälsning från gångertabellen.se");
-    const body = encodeURIComponent(msg + (email ? `\n\nMin e-post: ${email}` : ""));
-    window.location.href = `mailto:info@jonasvonessen.se?subject=${subject}&body=${body}`;
-    note.textContent = "Tack! Din e-postapp öppnas så att du kan skicka iväg meddelandet.";
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Skickar …";
+    note.textContent = "";
+    try {
+      const res = await fetch("https://formsubmit.co/ajax/info@jonasvonessen.se", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          Meddelande: msg,
+          "E-post (besökare)": email || "(ingen angiven)",
+          _replyto: email || "",
+          _subject: "Hälsning från gångertabellen.se",
+          _template: "table",
+          _captcha: "false",
+          _honey: honey,
+        }),
+      });
+      if (!res.ok) throw new Error("status " + res.status);
+      form.reset();
+      note.textContent = "Tack! Ditt meddelande har skickats. 🎉";
+    } catch {
+      note.innerHTML =
+        'Hoppsan, det gick inte att skicka just nu. Du kan mejla direkt till <a href="mailto:info@jonasvonessen.se">info@jonasvonessen.se</a>.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   });
 }
 
