@@ -33,6 +33,13 @@ for (let a = 1; a <= 10; a++) {
 // De sex som enligt filmen verkligen behöver memoreras.
 const HARD_SIX = ["6x6", "6x7", "6x8", "7x7", "7x8", "8x8"];
 
+// Regnbågsfärger per rad (1 = röd högst upp ... 10 = lila), som på klassiska
+// trä-multiplikationsbräden. Index 0 används inte.
+const ROW_COLORS = [
+  "", "#ee6b63", "#f59148", "#f3bb45", "#bcd75c", "#82c95f",
+  "#4cc596", "#45cbd2", "#5ab0ee", "#8090ee", "#b98ee0",
+];
+
 /* ---------- Sparad data ---------- */
 const STORE_KEY = "snillsparv-multiplikation-v1";
 
@@ -592,6 +599,7 @@ function renderMulGrid(container, mode) {
       let cell;
       if (mode === "mark") {
         cell = makeCell(label, state.known[k] ? "known" : "");
+        cell.style.setProperty("--c", ROW_COLORS[r]);
         cell.setAttribute("aria-pressed", !!state.known[k]);
         cell.setAttribute("aria-label", `${r} gånger ${c}`);
         cell.addEventListener("click", () => toggleKnown(r, c));

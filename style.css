@@ -444,11 +444,12 @@ main {
     box-shadow 0.28s ease, background-color 0.28s ease, color 0.28s ease;
 }
 #mul-grid .cell:not(.head):not(.mirror):not(.known) {
-  background: linear-gradient(180deg, #ffffff, #eef1fc);
-  border-color: #e1e5f5;
-  color: #353a4e;
+  background-color: var(--c, #ffffff);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #2b2f3f;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(31, 41, 90, 0.17);
+  box-shadow: 0 4px 8px rgba(31, 41, 90, 0.2);
 }
 #mul-grid .cell.known {
   transform: translateY(2px) scale(0.9);
