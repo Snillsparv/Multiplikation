@@ -645,6 +645,27 @@ body.tbl-fancy #mul-grid .cell.known {
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ===== Kontakt ===== */
+.contact a { color: var(--primary); font-weight: 800; word-break: break-word; }
+.field { display: block; margin: 12px 0; }
+.field span { display: block; font-size: 0.9rem; font-weight: 800; margin-bottom: 5px; }
+.field input,
+.field textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 11px 13px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fafbff;
+}
+.field textarea { resize: vertical; min-height: 92px; }
+.field input:focus,
+.field textarea:focus { outline: none; border-color: var(--primary); }
+.contact-note { font-size: 0.85rem; color: var(--muted); text-align: center; margin: 10px 0 0; }
+
 /* ===== Större skärmar ===== */
 @media (min-width: 720px) {
   .app-header h1 { font-size: 1.7rem; }

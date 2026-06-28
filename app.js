@@ -876,6 +876,27 @@ function renderStats() {
 }
 
 /* ---------- Start ---------- */
+/* ---------- Kontaktformulär (öppnar besökarens e-postapp) ---------- */
+function bindContactForm() {
+  const form = $("#contact-form");
+  if (!form) return;
+  const note = $("#contact-note");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = $("#contact-email").value.trim();
+    const msg = $("#contact-message").value.trim();
+    if (!msg) {
+      note.textContent = "Skriv gärna ett meddelande först.";
+      $("#contact-message").focus();
+      return;
+    }
+    const subject = encodeURIComponent("Hälsning från gångertabellen.se");
+    const body = encodeURIComponent(msg + (email ? `\n\nMin e-post: ${email}` : ""));
+    window.location.href = `mailto:info@jonasvonessen.se?subject=${subject}&body=${body}`;
+    note.textContent = "Tack! Din e-postapp öppnas så att du kan skicka iväg meddelandet.";
+  });
+}
+
 function init() {
   // slå på/av det "fancy" utseendet på Tabellen (se FANCY_TABLE ovan)
   document.body.classList.toggle("tbl-fancy", FANCY_TABLE);
@@ -957,6 +978,9 @@ function init() {
   renderMnemonicCards();
   renderTrickAnims();
   bindTrainButtons();
+
+  // kontaktformulär
+  bindContactForm();
 }
 
 if (typeof document !== "undefined" && document.addEventListener) {
