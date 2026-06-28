@@ -530,6 +530,36 @@ main {
 .mnemo p { margin: 0; font-size: 0.93rem; }
 .star-card .btn { width: 100%; margin-top: 8px; }
 
+/* Animerade rutnät som visar hur tabellen krymper */
+.trick-anim { margin: 14px 0 4px; }
+.trick-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+  width: 100%;
+  max-width: 230px;
+  margin: 0 auto;
+}
+.tcell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--primary);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.tcell.remain { background: var(--primary); }
+.tcell.gone { background: #d9dcea; opacity: 0.35; transform: scale(0.5); }
+.tcell.leaving { background: #f59e0b; }
+.trick-anim.play .tcell.leaving { opacity: 0; transform: scale(0); }
+.tcell.six { background: #f59e0b; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3); }
+.trick-anim.play .tcell.six { animation: sixpop 0.45s ease backwards; }
+@keyframes sixpop { from { transform: scale(0); } to { transform: scale(1); } }
+.trick-caption {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
 /* ===== Statistik ===== */
 .tiles {
   display: grid;

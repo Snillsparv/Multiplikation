@@ -663,6 +663,71 @@ function renderMnemonicCards() {
   }).join("");
 }
 
+/* ---------- Knepen: animerade rutnät som krymper ---------- */
+// I vilken ordning tabellen krymper i filmen. Returnerar steget då rutan
+// (r, c) stryks: 0 = spegelhalvan (kommutativa lagen), 1..7 = respektive
+// tabell i tur och ordning, -1 = överlever (en av de sex svåra).
+function eliminationStep(r, c) {
+  if (c > r) return 0; // övre triangeln är bara en spegling
+  const order = [1, 10, 5, 9, 2, 4, 3];
+  for (let i = 0; i < order.length; i++) {
+    if (r === order[i] || c === order[i]) return i + 1;
+  }
+  return -1; // 6, 7, 8 i båda led = de sex svåra
+}
+
+function renderTrickAnims() {
+  const wraps = $$(".trick-anim");
+  if (!wraps.length) return;
+
+  for (const wrap of wraps) {
+    const step = Number(wrap.dataset.step);
+    const grid = document.createElement("div");
+    grid.className = "trick-grid";
+    let leaving = 0;
+    let remain = 0;
+    for (let r = 1; r <= 10; r++) {
+      for (let c = 1; c <= 10; c++) {
+        const cell = document.createElement("span");
+        cell.className = "tcell";
+        const e = eliminationStep(r, c);
+        if (step >= 8) {
+          cell.classList.add(e === -1 ? "six" : "gone");
+        } else if (e === step) {
+          cell.classList.add("leaving");
+          cell.style.transitionDelay = Math.min(leaving++ * 14, 650) + "ms";
+        } else if (e !== -1 && e < step) {
+          cell.classList.add("gone");
+        } else {
+          cell.classList.add("remain");
+          remain++;
+        }
+        grid.appendChild(cell);
+      }
+    }
+    wrap.appendChild(grid);
+
+    const cap = document.createElement("p");
+    cap.className = "trick-caption";
+    cap.textContent = step >= 8 ? "Bara 6 tal kvar att memorera!" : `${remain} tal kvar`;
+    wrap.appendChild(cap);
+  }
+
+  // spela när kortet skrollas in i bild, återställ när det lämnar (så det
+  // spelas om både när man skrollar tillbaka och när man öppnar fliken igen)
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const ent of entries) ent.target.classList.toggle("play", ent.isIntersecting);
+      },
+      { threshold: 0.3 }
+    );
+    wraps.forEach((w) => io.observe(w));
+  } else {
+    wraps.forEach((w) => w.classList.add("play"));
+  }
+}
+
 function bindTrainButtons() {
   $$("[data-train]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -869,6 +934,7 @@ function init() {
 
   // knepen
   renderMnemonicCards();
+  renderTrickAnims();
   bindTrainButtons();
 }
 
