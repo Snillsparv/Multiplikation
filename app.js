@@ -601,10 +601,10 @@ function renderMulGrid(container, mode) {
         cell.addEventListener("click", () => {
           const s = getStat(k);
           if (!s || !s.attempts) {
-            toast(`${r} × ${c} = ${r * c} · inte testad än`);
+            toast(`${r} × ${c} = ${r * c} | inte testad än`);
           } else {
             const med = medTime(k);
-            toast(`${r} × ${c} = ${r * c} · ${s.attempts} svar, ${s.wrong} fel${med != null ? ` · ca ${fmtSec(med)}` : ""}`);
+            toast(`${r} × ${c} = ${r * c} | ${s.attempts} svar, ${s.wrong} fel${med != null ? ` | ca ${fmtSec(med)}` : ""}`);
           }
         });
       }
@@ -657,7 +657,7 @@ function renderMnemonicCards() {
     const [a, b] = parseKey(k);
     const m = MNEMONICS[k];
     return `<div class="mnemo">
-      <div class="mnemo-fact">${a} × ${b} = ${a * b} · ${m.title}</div>
+      <div class="mnemo-fact">${a} × ${b} = ${a * b} <span class="mnemo-sep">|</span> ${m.title}</div>
       <p>${m.text}</p>
     </div>`;
   }).join("");

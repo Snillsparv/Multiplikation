@@ -526,6 +526,7 @@ main {
   margin: 10px 0;
 }
 .mnemo-fact { font-weight: 900; font-size: 1.1rem; margin-bottom: 2px; }
+.mnemo-sep { font-weight: 400; opacity: 0.4; }
 .mnemo p { margin: 0; font-size: 0.93rem; }
 .star-card .btn { width: 100%; margin-top: 8px; }
 
