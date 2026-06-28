@@ -718,9 +718,14 @@ function renderTrickAnims() {
   if ("IntersectionObserver" in window) {
     const io = new IntersectionObserver(
       (entries) => {
-        for (const ent of entries) ent.target.classList.toggle("play", ent.isIntersecting);
+        for (const ent of entries) {
+          // starta först när (nästan) hela rutan syns ...
+          if (ent.intersectionRatio >= 0.9) ent.target.classList.add("play");
+          // ... och nollställ först när den skrollats helt ur bild (så den kan spelas om)
+          else if (!ent.isIntersecting) ent.target.classList.remove("play");
+        }
       },
-      { threshold: 0.3 }
+      { threshold: [0, 0.9] }
     );
     wraps.forEach((w) => io.observe(w));
   } else {
