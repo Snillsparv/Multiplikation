@@ -646,6 +646,18 @@ body.tbl-fancy #mul-grid .cell.known {
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ===== Kontakt ===== */
+.contact-photo {
+  display: block;
+  width: 250px;
+  max-width: 72%;
+  height: auto;
+  margin: 4px auto -6px;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 9px rgba(31, 41, 90, 0.18));
+}
+.contact .card { position: relative; z-index: 1; }
 .contact a { color: var(--primary); font-weight: 800; word-break: break-word; }
 .field { display: block; margin: 12px 0; }
 .field span { display: block; font-size: 0.9rem; font-weight: 800; margin-bottom: 5px; }
