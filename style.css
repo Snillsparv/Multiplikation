@@ -432,18 +432,22 @@ main {
   pointer-events: none;
 }
 .cell.known {
-  background: #e6e8f1;
-  border-color: #dfe2ee;
-  color: #aab0c2;
+  background: var(--green-tint);
+  border-color: #cdeada;
+  color: #8fbda4;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
 }
 
-/* Tabellen: 3D-känsla – aktiva rutor svävar, avbockade sjunker ner och gråas ut */
-#view-tabell .grid-wrap { padding: 10px 6px 18px; }
-#mul-grid .cell:not(.head):not(.mirror) {
+/* ---- Valfritt "fancy" utseende på Tabellen: 3D-svävande rutor + regnbågsfärger.
+   Avstängt som standard. Slå på genom att sätta FANCY_TABLE = true i app.js
+   (det lägger klassen .tbl-fancy på <body>). Sparat ifall vi vill återgå hit. ---- */
+body.tbl-fancy #view-tabell .grid-wrap { padding: 10px 6px 18px; }
+body.tbl-fancy #mul-grid .cell:not(.head):not(.mirror) {
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.3, 1),
     box-shadow 0.28s ease, background-color 0.28s ease, color 0.28s ease;
 }
-#mul-grid .cell:not(.head):not(.mirror):not(.known) {
+body.tbl-fancy #mul-grid .cell:not(.head):not(.mirror):not(.known) {
   background-color: var(--c, #ffffff);
   background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
   border-color: rgba(0, 0, 0, 0.06);
@@ -451,12 +455,16 @@ main {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(31, 41, 90, 0.2);
 }
-#mul-grid .cell.known {
+body.tbl-fancy #mul-grid .cell.known {
+  background: #e6e8f1;
+  border-color: #dfe2ee;
+  color: #aab0c2;
+  text-decoration: none;
   transform: translateY(2px) scale(0.9);
   box-shadow: inset 0 1px 3px rgba(31, 41, 90, 0.16);
 }
 @media (hover: hover) {
-  #mul-grid .cell:not(.head):not(.mirror):not(.known):hover {
+  body.tbl-fancy #mul-grid .cell:not(.head):not(.mirror):not(.known):hover {
     transform: translateY(-6px);
     box-shadow: 0 8px 13px rgba(31, 41, 90, 0.24);
   }
