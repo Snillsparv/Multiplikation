@@ -1,7 +1,7 @@
 "use strict";
 
 /* =====================================================
-   Multiplikationstabellen – träningssida
+   Multiplikationstabellen, träningssida
    Bygger på Snillsparvs film om multiplikationstabellen.
    All data sparas lokalt i webbläsaren (localStorage).
    ===================================================== */
@@ -38,7 +38,7 @@ const STORE_KEY = "snillsparv-multiplikation-v1";
 
 function defaultState() {
   return {
-    known: {},   // { "4x6": true } – tal man bockat av att man redan kan
+    known: {},   // { "4x6": true }, tal man bockat av att man redan kan
     stats: {},   // { "4x6": { attempts, wrong, times: [ms, ...] } }
     totals: { rounds: 0, answers: 0, correct: 0, bestStreak: 0 },
     settings: {
@@ -73,7 +73,7 @@ function save() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
   } catch {
-    /* t.ex. privat läge – sidan funkar ändå, utan att minnas */
+    /* t.ex. privat läge, sidan funkar ändå, utan att minnas */
   }
 }
 
@@ -108,7 +108,7 @@ function recordAnswer(k, correct, ms) {
 // Hur mycket ett tal behöver tränas: fel väger tyngst, sedan långsamhet.
 function difficulty(k) {
   const s = getStat(k);
-  if (!s || !s.attempts) return 1.6; // aldrig tränad – ganska hög prioritet
+  if (!s || !s.attempts) return 1.6; // aldrig tränad, ganska hög prioritet
   let d = 0.4 + (s.wrong / s.attempts) * 3;
   const med = medTime(k);
   if (med != null) d += clamp((med - 3000) / 5000, 0, 1) * 1.5;
@@ -138,15 +138,15 @@ const MNEMONICS = {
   },
   "8x8": {
     title: "Mario och Luigi!",
-    text: "Mario och Luigi ser ut som två åttor – och de kommer från Nintendo 64. Alltså: 8 × 8 = 64!",
+    text: "Mario och Luigi ser ut som två åttor, och de kommer från Nintendo 64. Alltså: 8 × 8 = 64!",
   },
   "7x7": {
     title: "Sjösjuk? Fira nyår!",
     text: "Sju sju låter som ”sjösjuk” och fyra nio som ”fira nyår”. Tänk dig en sjösjuk pirat som firar nyår: 7 × 7 = 49!",
   },
   "6x6": {
-    title: "Sax, sax – träsax!",
-    text: "Sex låter som sax: ”sax, sax, träsax” – 6, 6, 3, 6. Tänk dig en träsax så sitter den i ett klipp: 6 × 6 = 36!",
+    title: "Sax, sax, träsax!",
+    text: "Sex låter som sax: ”sax, sax, träsax”, 6, 6, 3, 6. Tänk dig en träsax så sitter den i ett klipp: 6 × 6 = 36!",
   },
   "6x7": {
     title: "Hackan!",
@@ -154,11 +154,11 @@ const MNEMONICS = {
   },
   "6x8": {
     title: "Sex råttor!",
-    text: "Åtta rimmar på råtta: sex råttor! Två äter upp varandra och kvar är fyra råttor – 4 och 8 ger 48. Så 6 × 8 = 48!",
+    text: "Åtta rimmar på råtta: sex råttor! Två äter upp varandra och kvar är fyra råttor, 4 och 8 ger 48. Så 6 × 8 = 48!",
   },
   "3x4": {
     title: "1, 2, 3, 4!",
-    text: "12 = 3 × 4 – siffrorna kommer i ordning: 1, 2, 3, 4. Precis som 56 = 7 × 8!",
+    text: "12 = 3 × 4, siffrorna kommer i ordning: 1, 2, 3, 4. Precis som 56 = 7 × 8!",
   },
 };
 
@@ -172,15 +172,15 @@ function tipFor(a, b) {
 
   if (a === 1 || b === 1) {
     const n = other(1);
-    return { title: "Gånger 1 – ingenting händer", text: `1 × ${n} är bara ${n}. Talet ändras inte!` };
+    return { title: "Gånger 1, ingenting händer", text: `1 × ${n} är bara ${n}. Talet ändras inte!` };
   }
   if (a === 10 || b === 10) {
     const n = other(10);
-    return { title: "Gånger 10 – lägg till en nolla", text: `Sätt en nolla efter ${n}: ${n} × 10 = ${n * 10}.` };
+    return { title: "Gånger 10, lägg till en nolla", text: `Sätt en nolla efter ${n}: ${n} × 10 = ${n * 10}.` };
   }
   if (a === 2 || b === 2) {
     const n = other(2);
-    return { title: "Gånger 2 – dubbla!", text: `Plussa talet med sig självt: ${n} + ${n} = ${n * 2}.` };
+    return { title: "Gånger 2, dubbla!", text: `Plussa talet med sig självt: ${n} + ${n} = ${n * 2}.` };
   }
   if (a === 9 || b === 9) {
     const n = other(9);
@@ -193,19 +193,19 @@ function tipFor(a, b) {
     const n = other(5);
     const half = String(n / 2).replace(".", ",");
     return {
-      title: "Femmans knep – halvera och ta gånger 10",
+      title: "Femmans knep, halvera och ta gånger 10",
       text: `Fem är hälften av tio! Hälften av ${n} är ${half}, och ${half} × 10 = ${n * 5}.`,
     };
   }
   if (a === 4 || b === 4) {
     const n = other(4);
-    return { title: "Gånger 4 – dubbla två gånger", text: `Dubbla ${n} till ${n * 2}, och dubbla en gång till: ${n * 4}!` };
+    return { title: "Gånger 4, dubbla två gånger", text: `Dubbla ${n} till ${n * 2}, och dubbla en gång till: ${n * 4}!` };
   }
   if (a === 3 || b === 3) {
     const n = other(3);
-    return { title: "Gånger 3 – dubbla och lägg till en till", text: `${n} + ${n} = ${n * 2}, och ${n * 2} + ${n} = ${n * 3}.` };
+    return { title: "Gånger 3, dubbla och lägg till en till", text: `${n} + ${n} = ${n * 2}, och ${n * 2} + ${n} = ${n * 3}.` };
   }
-  return { title: "Nöt in den!", text: "Repetition gör susen – kör några varv till så sitter den." };
+  return { title: "Nöt in den!", text: "Repetition gör susen, kör några varv till så sitter den." };
 }
 
 /* ---------- Frågeval ---------- */
@@ -251,7 +251,7 @@ function buildQueue(pool, count) {
 
     const take = Math.min(pool.length, remaining);
     const chunk = weightedSample(pool, pool.map(weightOf), take);
-    // undvik samma tal två gånger i rad där omgångarna möts –
+    // undvik samma tal två gånger i rad där omgångarna möts,
     // talen i en omgång är alla olika, så det finns alltid ett att byta fram
     if (chunk[0] === last) {
       const e = chunk.findIndex((k) => k !== last);
@@ -321,10 +321,10 @@ function startRound(opts) {
     return;
   }
 
-  // avbockade tal hoppas över – om allt är avbockat blir det repetition
+  // avbockade tal hoppas över, om allt är avbockat blir det repetition
   if (!opts.keepKnown) {
     const left = pool.filter((k) => !state.known[k]);
-    if (left.length === 0) toast("Allt här är redan avbockat – vi kör repetition!");
+    if (left.length === 0) toast("Allt här är redan avbockat, vi kör repetition!");
     else pool = left;
   }
 
@@ -357,7 +357,7 @@ function showQuestion() {
   const q = quiz;
   const k = q.queue[q.idx];
   let [a, b] = parseKey(k);
-  // visa ibland spegelvänt – 4×6 och 6×4 är ju samma sak!
+  // visa ibland spegelvänt, 4×6 och 6×4 är ju samma sak!
   if (a !== b && Math.random() < 0.5) [a, b] = [b, a];
   q.current = { key: k, a, b, t0: performance.now(), done: false };
 
@@ -434,7 +434,7 @@ function submitAnswer(skip) {
     const tip = tipFor(cur.a, cur.b);
     const head = correct
       ? `<div class="fb ok">Rätt! Men den tog en liten stund.</div>`
-      : `<div class="fb bad">${skip ? "" : "Inte riktigt – "}${cur.a} × ${cur.b} = <strong>${answer}</strong></div>`;
+      : `<div class="fb bad">${skip ? "" : "Inte riktigt, "}${cur.a} × ${cur.b} = <strong>${answer}</strong></div>`;
     fb.innerHTML =
       head +
       `<div class="tip-box"><strong>${tip.title}</strong><br>${tip.text}</div>` +
@@ -471,7 +471,7 @@ function finishRound() {
   if (pct === 100) { headline = "Alla rätt!"; ringColor = "#16a34a"; }
   else if (pct >= 80) { headline = "Snyggt jobbat!"; ringColor = "#16a34a"; }
   else if (pct >= 50) { headline = "Bra kämpat!"; ringColor = "#d97706"; }
-  else { headline = "Bra start – knepen hjälper dig!"; ringColor = "#be185d"; }
+  else { headline = "Bra start, knepen hjälper dig!"; ringColor = "#be185d"; }
 
   const correctTimes = q.results.filter((r) => r.correct);
   let statPills = "";
@@ -501,7 +501,7 @@ function finishRound() {
       .join("");
     workHtml = `<div class="card"><h2>Tal att jobba vidare på</h2>${rows}</div>`;
   } else {
-    workHtml = `<div class="card center"><p style="margin:4px 0">Inga luckor i den här rundan – allt satt direkt!</p></div>`;
+    workHtml = `<div class="card center"><p style="margin:4px 0">Inga luckor i den här rundan, allt satt direkt!</p></div>`;
   }
 
   let buttons = "";
@@ -547,7 +547,7 @@ function makeCell(text, cls) {
   return el;
 }
 
-// Bygger rutnätet. Bara ena halvan är klickbar – resten är spegling och visas utgråad.
+// Bygger rutnätet. Bara ena halvan är klickbar, resten är spegling och visas utgråad.
 // mode "mark": klicka för att bocka av tal man kan. mode "heat": färg efter statistik.
 function renderMulGrid(container, mode) {
   container.innerHTML = "";
@@ -580,7 +580,7 @@ function renderMulGrid(container, mode) {
       const k = keyOf(r, c);
       const label = state.settings.showAnswers || mode === "heat" ? r * c : `${r}·${c}`;
 
-      // övre halvan (kolumn > rad) är bara en spegling – grå och oklickbar
+      // övre halvan (kolumn > rad) är bara en spegling, grå och oklickbar
       if (c > r) {
         const cell = makeCell(label, "mirror");
         cell.disabled = true;
@@ -646,8 +646,8 @@ function updateKnownProgress() {
     known === 0
       ? "Inget avbockat ännu. Klicka på talen du redan kan, så ser du vad som är kvar att öva på."
       : known === ALL_FACTS.length
-        ? "Alla 55 tal avbockade – hela tabellen sitter!"
-        : `${known} av ${ALL_FACTS.length} tal avbockade – kvar att öva på: ${ALL_FACTS.length - known}.`;
+        ? "Alla 55 tal avbockade, hela tabellen sitter!"
+        : `${known} av ${ALL_FACTS.length} tal avbockade, kvar att öva på: ${ALL_FACTS.length - known}.`;
 }
 
 /* ---------- Knepen ---------- */
@@ -696,7 +696,7 @@ function renderStats() {
     wrap.innerHTML = `
       <div class="card center">
         <h2>Här kommer din statistik</h2>
-        <p class="muted">Kör en träningsrunda först! Sedan ser du här vilka tal du är snabb på – och vilka som behöver extra träning.</p>
+        <p class="muted">Kör en träningsrunda först! Sedan ser du här vilka tal du är snabb på, och vilka som behöver extra träning.</p>
         <button class="btn" id="goto-train-btn">Till träningen</button>
       </div>`;
     $("#goto-train-btn").addEventListener("click", () => showTab("trana"));
@@ -740,7 +740,7 @@ function renderStats() {
   } else {
     weakHtml = `<div class="card">
       <h2>Dina luckor just nu</h2>
-      <p class="muted">Inga tydliga luckor just nu – snyggt! Kör fler rundor så håller vi koll.</p>
+      <p class="muted">Inga tydliga luckor just nu, snyggt! Kör fler rundor så håller vi koll.</p>
     </div>`;
   }
 
