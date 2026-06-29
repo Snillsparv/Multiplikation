@@ -340,7 +340,7 @@ function startRound(opts) {
     else pool = left;
   }
 
-  const count = state.settings.count;
+  const count = opts.count || state.settings.count;
   quiz = {
     opts,
     label: opts.label || "",
@@ -751,7 +751,8 @@ function bindTrainButtons() {
     btn.addEventListener("click", () => {
       const v = btn.dataset.train;
       if (v === "hard") {
-        startRound({ facts: HARD_SIX, label: "De sex svåra" });
+        // alltid alla sex, oavsett vad som bockats av i tabellen
+        startRound({ facts: HARD_SIX, keepKnown: true, count: Math.max(state.settings.count, 6), label: "De sex svåra" });
       } else {
         const n = Number(v);
         startRound({ tables: [n], label: `${n}:ans tabell` });
@@ -980,9 +981,14 @@ function init() {
     startRound({ tables, label });
   });
 
-  $("#quick-hard").addEventListener("click", () =>
-    startRound({ facts: HARD_SIX, label: "De sex svåra" })
-  );
+  $("#quick-hard").addEventListener("click", () => {
+    // till översikten med minnesreglerna först, träningen startas därifrån
+    showTab("tips");
+    requestAnimationFrame(() => {
+      const card = $("#sex-svara");
+      if (card) card.scrollIntoView({ block: "start" });
+    });
+  });
   $("#quick-gaps").addEventListener("click", () => {
     const weak = weakFacts().slice(0, 8);
     if (weak.length === 0) {
