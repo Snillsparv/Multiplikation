@@ -941,12 +941,25 @@ function setupContactPeek() {
   io.observe(contact);
 }
 
+// Tillbaka till startvyn (samma som när man landar): Träna-fliken, uppstartsskärmen.
+function goHome() {
+  if (quiz) {
+    clearTimeout(quiz.timer);
+    quiz = null;
+  }
+  showScreen("setup");
+  showTab("trana");
+}
+
 function init() {
   // slå på/av det "fancy" utseendet på Tabellen (se FANCY_TABLE ovan)
   document.body.classList.toggle("tbl-fancy", FANCY_TABLE);
 
   // flikar
   $$(".tab-btn").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+  // klick på rubriken tar dig till startvyn
+  $("#home-btn").addEventListener("click", goHome);
 
   // uppstartsval
   renderTableChips();
