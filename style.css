@@ -88,21 +88,24 @@ h3 { font-size: 1.05rem; margin: 0 0 6px; font-weight: 800; }
 
 /* ===== Flikar / navigering ===== */
 .tabs {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
   display: flex;
+  width: calc(100% - 28px);
+  max-width: 640px;
+  margin: 12px auto 0;
   background: var(--card);
-  border-top: 1px solid var(--line);
-  z-index: 50;
-  padding-bottom: env(safe-area-inset-bottom);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
 }
 .tab-btn {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
-  padding: 12px 4px 13px;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 4px;
   border: none;
   background: none;
   font-size: 0.82rem;
@@ -132,7 +135,7 @@ h3 { font-size: 1.05rem; margin: 0 0 6px; font-weight: 800; }
 main {
   max-width: 640px;
   margin: 0 auto;
-  padding: 16px 14px 110px;
+  padding: 16px 14px 40px;
 }
 .view { display: none; }
 .view.active { display: block; }
@@ -624,12 +627,12 @@ body.tbl-fancy #mul-grid .cell.known {
   text-align: center;
   color: var(--muted);
   font-size: 0.82rem;
-  padding: 0 16px 100px;
+  padding: 0 16px 30px;
 }
 #toast {
   position: fixed;
   left: 50%;
-  bottom: 86px;
+  bottom: 24px;
   transform: translateX(-50%) translateY(20px);
   background: #1f2937;
   color: #fff;
@@ -705,26 +708,16 @@ body.tbl-fancy #mul-grid .cell.known {
 .doodle .heart { color: rgba(214, 64, 74, 0.5); }
 .doodle-1 { top: 168px; left: 32px; transform: rotate(-9deg); }
 .doodle-2 { bottom: 90px; right: 32px; transform: rotate(7deg); }
+/* Klottret är tillfälligt dolt. Avkommentera blocket nedan för att visa det igen:
 @media (min-width: 1100px) {
   .doodle { display: block; }
 }
+*/
 
 /* ===== Större skärmar ===== */
 @media (min-width: 720px) {
   .app-header h1 { font-size: 1.7rem; }
-  .tabs {
-    position: static;
-    max-width: 640px;
-    margin: 14px auto 0;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-  }
-  .tab-btn { flex-direction: row; gap: 8px; padding: 13px 8px; font-size: 0.95rem; }
-  main { padding-bottom: 40px; }
-  .app-footer { padding-bottom: 30px; }
-  #toast { bottom: 30px; }
+  .tab-btn { gap: 8px; padding: 13px 8px; font-size: 0.95rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
