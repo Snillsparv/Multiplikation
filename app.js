@@ -51,14 +51,30 @@ const STORE_KEY = "snillsparv-multiplikation-v1";
 function defaultState() {
   return {
     known: {},   // { "4x6": true }, tal man bockat av att man redan kan
-    stats: {},   // { "4x6": { attempts, wrong, times: [ms, ...] } }
-    totals: { rounds: 0, answers: 0, correct: 0, bestStreak: 0 },
+    stats: {},   // { "4x6": { attempts, wrong, recent, box, due, fastRow } }
+    totals: { rounds: 0, answers: 0, correct: 0, bestStreak: 0, paceMs: null },
     settings: {
       lastTables: [],
       count: 10,
       showAnswers: false,
     },
   };
+}
+
+// Lyfter in det äldre sparformatet (times-listan) i det nya rullande fönstret.
+// Gamla fel följer medvetet inte med: bara de senaste svaren ska räknas.
+function migrateStats(stats) {
+  for (const k of Object.keys(stats || {})) {
+    const s = stats[k];
+    if (!s.recent) {
+      s.recent = (s.times || []).map((ms) => ({ ok: true, ms }));
+      delete s.times;
+    }
+    if (s.box == null) s.box = 0;
+    if (s.due == null) s.due = 0;
+    if (s.fastRow == null) s.fastRow = 0;
+  }
+  return stats;
 }
 
 function load() {
@@ -70,7 +86,7 @@ function load() {
     const d = defaultState();
     return {
       known: data.known || d.known,
-      stats: data.stats || d.stats,
+      stats: migrateStats(data.stats || d.stats),
       totals: Object.assign(d.totals, data.totals),
       settings: Object.assign(d.settings, data.settings),
     };
@@ -90,55 +106,108 @@ function save() {
 }
 
 /* ---------- Statistik per tal ---------- */
-const FAST_MS = 2500;   // snabbare än så = blixtsnabbt
-const SLOW_MS = 6000;   // långsammare än så = dags för knep
+// Tempogränserna anpassar sig efter användarens egen takt: paceMs är ett
+// glidande medel av alla rätta svarstider. Utan historik motsvarar gränserna
+// ungefär de gamla fasta värdena (snabb ~2,5 s, säker ~3,5 s, långsam ~6 s).
+const DEFAULT_PACE = 2800;
+const RECENT_MAX = 10;      // så många senaste svar räknas per tal
+const AUTO_KNOWN_ROW = 3;   // så många snabba rätt i rad bockar av talet automatiskt
+
+// Leitner-lådor: efter rätt svar "vilar" talet allt längre innan det är
+// moget att övas igen. Fel svar backar till låda 0 (moget direkt).
+const BOX_REST_MS = [0, 8 * 36e5, 24 * 36e5, 3 * 864e5, 7 * 864e5, 14 * 864e5];
+
+function pace() {
+  return state.totals.paceMs || DEFAULT_PACE;
+}
+const fastMs = () => clamp(0.9 * pace(), 1600, 3600);   // "Blixtsnabbt!"
+const greenMs = () => clamp(1.25 * pace(), 2200, 5000); // säker på kartan + auto-avbockning
+const slowMs = () => clamp(2.2 * pace(), 4500, 10000);  // dags för knep
+const weakMs = () => slowMs() * 0.75;                   // räknas som lucka
 
 function getStat(k) {
   return state.stats[k];
 }
 
-function medTime(k) {
+function recentOf(k) {
   const s = getStat(k);
-  return s ? median(s.times) : null;
+  return s && s.recent ? s.recent : [];
+}
+
+function recentWrong(k) {
+  return recentOf(k).filter((r) => !r.ok).length;
+}
+
+// Mediantid av de senaste rätta svaren.
+function medTime(k) {
+  return median(recentOf(k).filter((r) => r.ok && r.ms != null).map((r) => r.ms));
 }
 
 function recordAnswer(k, correct, ms) {
-  const s = state.stats[k] || (state.stats[k] = { attempts: 0, wrong: 0, times: [] });
+  const s = state.stats[k] || (state.stats[k] = { attempts: 0, wrong: 0, recent: [], box: 0, due: 0, fastRow: 0 });
+  const now = Date.now();
+  const slowLimit = slowMs();
+  const quickLimit = greenMs();
+
   s.attempts++;
+  if (!correct) s.wrong++;
+
+  // rullande fönster: bara de senaste svaren räknas, gamla misstag glöms bort
+  s.recent.push({ ok: correct, ms: correct && ms != null ? Math.round(ms) : null });
+  if (s.recent.length > RECENT_MAX) s.recent.shift();
+
   if (correct) {
+    // Leitner: rätt i rimlig takt kliver upp en låda och vilar längre
+    if (ms != null && ms < slowLimit) s.box = Math.min(BOX_REST_MS.length - 1, (s.box || 0) + 1);
+    s.due = now + BOX_REST_MS[s.box || 0];
+    s.fastRow = ms != null && ms < quickLimit ? (s.fastRow || 0) + 1 : 0;
+    // uppdatera användarens takt (glidande medel av rätta svarstider)
     if (ms != null) {
-      s.times.push(Math.round(ms));
-      if (s.times.length > 6) s.times.shift();
+      const sample = Math.min(ms, 15000);
+      state.totals.paceMs = clamp(Math.round((state.totals.paceMs || sample) * 0.9 + sample * 0.1), 1200, 8000);
     }
   } else {
-    s.wrong++;
+    s.box = 0;
+    s.due = now;
+    s.fastRow = 0;
   }
+
   state.totals.answers++;
   if (correct) state.totals.correct++;
 }
 
 // Hur mycket ett tal behöver tränas: fel väger tyngst, sedan långsamhet.
+// Bara de senaste svaren räknas, så gamla misstag förlåts när nya rätt kommer.
 function difficulty(k) {
-  const s = getStat(k);
-  if (!s || !s.attempts) return 1.6; // aldrig tränad, ganska hög prioritet
-  let d = 0.4 + (s.wrong / s.attempts) * 3;
+  const rec = recentOf(k);
+  if (!rec.length) return 1.6; // aldrig tränad, ganska hög prioritet
+  let d = 0.4 + (recentWrong(k) / rec.length) * 3;
   const med = medTime(k);
-  if (med != null) d += clamp((med - 3000) / 5000, 0, 1) * 1.5;
+  if (med != null) d += clamp((med - greenMs()) / 5000, 0, 1) * 1.5;
   return d;
+}
+
+// Tal som vilar i sin Leitner-låda tonas ner, förfallna får en liten knuff.
+function dueFactor(k) {
+  const s = getStat(k);
+  if (!s || !s.due) return 1;
+  const now = Date.now();
+  if (now < s.due) return 0.2;
+  return 1 + Math.min(0.4, ((now - s.due) / (7 * 864e5)) * 0.4);
 }
 
 // Tal man bockat av i tabellen tonas ner rejält om de ändå dyker upp.
 function weightOf(k) {
-  return difficulty(k) * (state.known[k] ? 0.25 : 1);
+  return difficulty(k) * (state.known[k] ? 0.25 : 1) * dueFactor(k);
 }
 
-// Talen för "Mina luckor": ofta fel eller långsamma.
+// Talen för "Mina luckor": fel eller långsamma på sistone.
 function weakFacts() {
   return ALL_FACTS.filter((k) => {
-    const s = getStat(k);
-    if (!s || !s.attempts) return false;
+    const rec = recentOf(k);
+    if (!rec.length) return false;
     const med = medTime(k);
-    return s.wrong > 0 || (med != null && med > 4500);
+    return recentWrong(k) > 0 || (med != null && med > weakMs());
   }).sort((x, y) => difficulty(y) - difficulty(x));
 }
 
@@ -345,7 +414,7 @@ function startRound(opts) {
     opts,
     label: opts.label || "",
     queue: buildQueue(pool, count),
-    cap: count + Math.min(4, count),
+    cap: count + Math.min(8, count),
     idx: 0,
     answered: 0,
     corrects: 0,
@@ -353,6 +422,8 @@ function startRound(opts) {
     bestStreak: 0,
     misses: new Set(),
     slows: new Set(),
+    need: {},       // revansch: fel kräver två rätt i rad innan talet släpps
+    autoKnown: [],  // tal som bockades av automatiskt under rundan
     results: [],
     timer: null,
     current: null,
@@ -421,6 +492,8 @@ function submitAnswer(skip) {
   $("#q-input").disabled = true;
   $("#q-buttons").hidden = true;
 
+  const slowLimit = slowMs();
+  const quickLimit = fastMs();
   recordAnswer(cur.key, correct, correct ? ms : null);
   q.answered++;
   q.results.push({ key: cur.key, a: cur.a, b: cur.b, correct, ms });
@@ -430,17 +503,33 @@ function submitAnswer(skip) {
     q.streak++;
     q.bestStreak = Math.max(q.bestStreak, q.streak);
     state.totals.bestStreak = Math.max(state.totals.bestStreak, q.streak);
-    if (ms >= SLOW_MS) q.slows.add(cur.key);
+    if (ms >= slowLimit) q.slows.add(cur.key);
+
+    // revansch: ett tal som blivit fel måste sitta två gånger i rad
+    if (q.need[cur.key]) {
+      q.need[cur.key]--;
+      if (q.need[cur.key] > 0) requeue(cur.key);
+      else delete q.need[cur.key];
+    }
+
+    // tre snabba rätt i rad: talet sitter, bocka av det automatiskt
+    const st = getStat(cur.key);
+    if (!state.known[cur.key] && st.fastRow >= AUTO_KNOWN_ROW) {
+      state.known[cur.key] = true;
+      q.autoKnown.push(cur.key);
+      toast(`${cur.a} × ${cur.b} sitter! Avbockad i tabellen.`);
+    }
   } else {
     q.streak = 0;
     q.misses.add(cur.key);
+    q.need[cur.key] = 2;
   }
   save();
   updateStreakBadge();
 
   const fb = $("#feedback");
-  if (correct && ms < SLOW_MS) {
-    fb.innerHTML = `<div class="fb ok">Rätt!${ms < FAST_MS ? " Blixtsnabbt!" : ""}</div>`;
+  if (correct && ms < slowLimit) {
+    fb.innerHTML = `<div class="fb ok">Rätt!${ms < quickLimit ? " Blixtsnabbt!" : ""}</div>`;
     q.timer = setTimeout(nextQuestion, 800);
   } else {
     const tip = tipFor(cur.a, cur.b);
@@ -516,6 +605,12 @@ function finishRound() {
     workHtml = `<div class="card center"><p style="margin:4px 0">Inga luckor i den här rundan, allt satt direkt!</p></div>`;
   }
 
+  let autoHtml = "";
+  if (q.autoKnown.length) {
+    const names = q.autoKnown.map((k) => { const [a, b] = parseKey(k); return `${a} × ${b}`; }).join(", ");
+    autoHtml = `<div class="card note-card"><strong>Nu sitter: ${names}.</strong> Tre snabba rätt i rad, så de är avbockade i tabellen åt dig.</div>`;
+  }
+
   let buttons = "";
   if (workKeys.length) {
     buttons += `<button class="btn gaps" id="train-work-btn">Träna på dessa (${workKeys.length})</button>`;
@@ -534,6 +629,7 @@ function finishRound() {
       <h2>${headline}</h2>
       <div class="result-stats">${statPills}</div>
     </div>
+    ${autoHtml}
     ${workHtml}
     <div class="result-buttons">${buttons}</div>`;
 
@@ -612,12 +708,14 @@ function renderMulGrid(container, mode) {
         cell = makeCell(label, heatClass(k));
         cell.setAttribute("aria-label", `${r} gånger ${c}`);
         cell.addEventListener("click", () => {
-          const s = getStat(k);
-          if (!s || !s.attempts) {
+          const rec = recentOf(k);
+          if (!rec.length) {
             toast(`${r} × ${c} = ${r * c} | inte testad än`);
           } else {
             const med = medTime(k);
-            toast(`${r} × ${c} = ${r * c} | ${s.attempts} svar, ${s.wrong} fel${med != null ? ` | ca ${fmtSec(med)}` : ""}`);
+            const s = getStat(k);
+            const resting = s.due > Date.now() ? " | vilar" : "";
+            toast(`${r} × ${c} = ${r * c} | senaste ${rec.length}: ${recentWrong(k)} fel${med != null ? ` | ca ${fmtSec(med)}` : ""}${resting}`);
           }
         });
       }
@@ -763,12 +861,12 @@ function bindTrainButtons() {
 
 /* ---------- Statistik ---------- */
 function heatClass(k) {
-  const s = getStat(k);
-  if (!s || !s.attempts) return "heat-none";
-  const wrongRate = s.wrong / s.attempts;
+  const rec = recentOf(k);
+  if (!rec.length) return "heat-none";
+  const wrongRate = recentWrong(k) / rec.length;
   const med = medTime(k);
-  if (wrongRate >= 1 / 3 || (med != null && med >= SLOW_MS)) return "heat-bad";
-  if (wrongRate > 0 || med == null || med >= 3500) return "heat-mid";
+  if (wrongRate >= 1 / 3 || (med != null && med >= slowMs())) return "heat-bad";
+  if (wrongRate > 0 || med == null || med >= greenMs() || rec.length < 2) return "heat-mid";
   return "heat-good";
 }
 
@@ -804,11 +902,12 @@ function renderStats() {
     const rows = weak
       .map((k) => {
         const [a, b] = parseKey(k);
-        const s = getStat(k);
+        const rec = recentOf(k);
+        const wrongs = recentWrong(k);
         const med = medTime(k);
         let badges = "";
-        if (s && s.wrong > 0) badges += `<span class="chip-tag chip-bad">${s.wrong} fel</span>`;
-        if (med != null && med > 4500) badges += `<span class="chip-tag chip-slow">ca ${fmtSec(med)}</span>`;
+        if (wrongs > 0) badges += `<span class="chip-tag chip-bad">${wrongs} fel av ${rec.length}</span>`;
+        if (med != null && med > weakMs()) badges += `<span class="chip-tag chip-slow">ca ${fmtSec(med)}</span>`;
         return `<div class="weak-row">
           <span class="weak-fact">${a} × ${b} = ${a * b}</span>
           <span class="weak-badges">${badges}</span>
@@ -1056,7 +1155,8 @@ if (typeof document !== "undefined" && document.addEventListener) {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     keyOf, parseKey, median, tipFor, difficulty, weightOf, weakFacts,
-    weightedSample, buildQueue, heatClass, recordAnswer,
-    ALL_FACTS, HARD_SIX, MNEMONICS, state,
+    weightedSample, buildQueue, heatClass, recordAnswer, migrateStats,
+    fastMs, greenMs, slowMs, weakMs, dueFactor, medTime, getStat, recentWrong,
+    ALL_FACTS, HARD_SIX, MNEMONICS, BOX_REST_MS, state,
   };
 }

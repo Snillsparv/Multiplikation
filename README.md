@@ -25,9 +25,13 @@ All träningsdata sparas lokalt i webbläsaren (localStorage).
 - **Statistik**, sidan mäter hur snabbt du svarar och håller koll på vad
   som går fel. Under *Mina luckor* kan du träna specifikt på de tal du är
   långsammast eller osäkrast på, och kartan visar hela tabellen i grönt,
-  gult och rött.
+  gult och rött. Bara de senaste svaren räknas, så gamla misstag förlåts
+  när nya rätt kommer.
 - Tal som blir fel under en runda kommer tillbaka lite senare i samma
-  runda, så att de hinner fastna.
+  runda och måste sitta två gånger i rad innan de släpps.
+- Smart repetition: tal som sitter "vilar" allt längre mellan gångerna
+  (Leitner-lådor), och tre snabba rätt i rad bockar av talet automatiskt
+  i tabellen. Tempogränserna anpassar sig efter användarens egen takt.
 
 ## Kör lokalt
 
