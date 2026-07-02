@@ -332,6 +332,19 @@ main {
 .fb { font-size: 1.2rem; font-weight: 800; }
 .fb.ok { color: var(--green-dark); }
 .fb.bad { color: var(--red); }
+.fb.hint { color: var(--amber-strong); }
+
+/* Prickmodellen: talet som rutnät av prickar, färgdelat vid femman */
+.dots-wrap { margin: 12px auto 4px; text-align: center; }
+.dots-grid { display: inline-grid; gap: 3px; }
+.dot-cell {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.dot-cell.over5 { background: #f59e0b; }
+.dots-text { font-size: 0.92rem; margin: 8px 0 10px; }
 .tip-box {
   background: var(--amber-tint);
   border-left: 4px solid #f59e0b;
@@ -408,6 +421,7 @@ main {
 }
 .chip-bad { background: var(--red-tint); color: var(--red); }
 .chip-slow { background: var(--amber-tint); color: var(--amber-strong); }
+.chip-hint { background: var(--primary-tint); color: var(--primary-dark); }
 
 /* ===== Rutnätet ===== */
 .grid-wrap { overflow-x: auto; margin: 12px -2px 0; padding: 2px; }
@@ -563,6 +577,7 @@ body.tbl-fancy #mul-grid .cell.known {
   font-size: 0.95rem;
 }
 .tip-card p { margin: 6px 0 10px; }
+.film-btn { margin-left: 8px; margin-top: 6px; text-decoration: none; }
 .star-card { border: 2px solid #fcd34d; }
 .mnemo {
   background: var(--amber-tint);

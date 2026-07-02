@@ -27,8 +27,19 @@ All träningsdata sparas lokalt i webbläsaren (localStorage).
   långsammast eller osäkrast på, och kartan visar hela tabellen i grönt,
   gult och rött. Bara de senaste svaren räknas, så gamla misstag förlåts
   när nya rätt kommer.
+- Vid fel svar visas först bara knepet som ledtråd, utan facit, och man
+  får en ny chans att komma på svaret själv. Först vid andra felet visas
+  facit, tillsammans med en prickmodell som ritar talet som rader av
+  prickar (färgdelat vid femman) så att man ser varför svaret stämmer.
 - Tal som blir fel under en runda kommer tillbaka lite senare i samma
   runda och måste sitta två gånger i rad innan de släpps.
+- Läxlänkar: `gångertabellen.se/#tabell=5,9&antal=10` startar en
+  förinställd runda direkt, perfekt att skicka som läxa. En
+  kopiera-knapp på startskärmen skapar länken åt dig. Även
+  `#traning=sex-svara` och `#traning=luckor` fungerar.
+- Filmkoppling förberedd: när filmen är uppe sätts `FILM_URL` och
+  sekundtal per knep i `app.js`, så dyker "Se knepet i filmen"-knappar
+  upp på korten under Knepen.
 - Smart repetition: tal som sitter "vilar" allt längre mellan gångerna
   (Leitner-lådor), och tre snabba rätt i rad bockar av talet automatiskt
   i tabellen. Tempogränserna anpassar sig efter användarens egen takt.

@@ -246,6 +246,9 @@ const MNEMONICS = {
 // Ordning för korten under "Knepen" (samma ordning som i filmen).
 const MNEMONIC_ORDER = ["7x8", "8x8", "7x7", "6x6", "6x7", "6x8"];
 
+// Varje tips finns i två varianter: "text" (med facit, visas när frågan är
+// avgjord) och "hint" (utan facit, visas som ledtråd när man får försöka igen).
+// Minnesreglerna är sina egna ledtrådar, där är poängen att plocka svaret ur ramsan.
 function tipFor(a, b) {
   const k = keyOf(a, b);
   if (MNEMONICS[k]) return MNEMONICS[k];
@@ -253,21 +256,34 @@ function tipFor(a, b) {
 
   if (a === 1 || b === 1) {
     const n = other(1);
-    return { title: "Gånger 1, ingenting händer", text: `1 × ${n} är bara ${n}. Talet ändras inte!` };
+    return {
+      title: "Gånger 1, ingenting händer",
+      text: `1 × ${n} är bara ${n}. Talet ändras inte!`,
+      hint: "Multiplicerar du med 1 händer ingenting alls. Vad blir talet?",
+    };
   }
   if (a === 10 || b === 10) {
     const n = other(10);
-    return { title: "Gånger 10, lägg till en nolla", text: `Sätt en nolla efter ${n}: ${n} × 10 = ${n * 10}.` };
+    return {
+      title: "Gånger 10, lägg till en nolla",
+      text: `Sätt en nolla efter ${n}: ${n} × 10 = ${n * 10}.`,
+      hint: `Sätt bara en nolla efter ${n}.`,
+    };
   }
   if (a === 2 || b === 2) {
     const n = other(2);
-    return { title: "Gånger 2, dubbla!", text: `Plussa talet med sig självt: ${n} + ${n} = ${n * 2}.` };
+    return {
+      title: "Gånger 2, dubbla!",
+      text: `Plussa talet med sig självt: ${n} + ${n} = ${n * 2}.`,
+      hint: `Plussa talet med sig självt: vad är ${n} + ${n}?`,
+    };
   }
   if (a === 9 || b === 9) {
     const n = other(9);
     return {
       title: "Nians knep",
       text: `Första siffran är ett mindre än ${n}, alltså ${n - 1}. Siffrorna i svaret blir 9 ihop: ${n - 1} + ${10 - n} = 9. Svaret är ${n * 9}!`,
+      hint: `Första siffran är ett mindre än ${n}. Och svarets två siffror blir 9 tillsammans.`,
     };
   }
   if (a === 5 || b === 5) {
@@ -276,17 +292,86 @@ function tipFor(a, b) {
     return {
       title: "Femmans knep, halvera och ta gånger 10",
       text: `Fem är hälften av tio! Hälften av ${n} är ${half}, och ${half} × 10 = ${n * 5}.`,
+      hint: `Fem är hälften av tio! Ta hälften av ${n}, och sedan gånger 10.`,
     };
   }
   if (a === 4 || b === 4) {
     const n = other(4);
-    return { title: "Gånger 4, dubbla två gånger", text: `Dubbla ${n} till ${n * 2}, och dubbla en gång till: ${n * 4}!` };
+    return {
+      title: "Gånger 4, dubbla två gånger",
+      text: `Dubbla ${n} till ${n * 2}, och dubbla en gång till: ${n * 4}!`,
+      hint: `Dubbla ${n} till ${n * 2}, och dubbla sedan en gång till.`,
+    };
   }
   if (a === 3 || b === 3) {
     const n = other(3);
-    return { title: "Gånger 3, dubbla och lägg till en till", text: `${n} + ${n} = ${n * 2}, och ${n * 2} + ${n} = ${n * 3}.` };
+    return {
+      title: "Gånger 3, dubbla och lägg till en till",
+      text: `${n} + ${n} = ${n * 2}, och ${n * 2} + ${n} = ${n * 3}.`,
+      hint: `Dubbla först: ${n} + ${n} = ${n * 2}. Lägg sedan till ${n} en gång till.`,
+    };
   }
   return { title: "Nöt in den!", text: "Repetition gör susen, kör några varv till så sitter den." };
+}
+
+/* ---------- Prickmodellen: visa varför svaret stämmer ---------- */
+const PLURAL = ["", "ettor", "tvåor", "treor", "fyror", "femmor", "sexor", "sjuor", "åttor", "nior", "tior"];
+
+// Ritar a rader med b prickar. Fler än fem rader färgdelas vid femman, så att
+// knepet "dela vid fem" syns: 7 × 8 = 5 åttor + 2 åttor. Vänd-knappen visar
+// samma tal åt andra hållet (kommutativa lagen).
+function dotsHtml(a, b) {
+  let cells = "";
+  for (let r = 0; r < a; r++) {
+    for (let c = 0; c < b; c++) {
+      cells += `<span class="dot-cell${r >= 5 ? " over5" : ""}"></span>`;
+    }
+  }
+  let text;
+  if (a > 5) {
+    const rest = a - 5;
+    text = `5 ${PLURAL[b]} är ${5 * b}, och ${rest} ${PLURAL[b]} är ${rest * b}. ${5 * b} + ${rest * b} = ${a * b}.`;
+  } else if (a === 1) {
+    text = `En rad med ${b} prickar: 1 × ${b} = ${b}.`;
+  } else {
+    text = `${a} rader med ${b} prickar: ${a} ${PLURAL[b]} är ${a * b}.`;
+  }
+  return `<div class="dots-wrap">
+    <div class="dots-grid" style="grid-template-columns: repeat(${b}, 13px)">${cells}</div>
+    <p class="dots-text">${text}</p>
+    <button type="button" class="btn small secondary" id="dots-flip">Vänd på det: ${b} × ${a}</button>
+  </div>`;
+}
+
+function bindDotsFlip(container, a, b) {
+  const btn = container.querySelector("#dots-flip");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    container.querySelector(".dots-wrap").outerHTML = dotsHtml(b, a);
+    bindDotsFlip(container, b, a);
+  });
+}
+
+/* ---------- Filmkoppling (vilande tills filmen är uppe) ---------- */
+// När filmen är uppladdad: sätt FILM_URL till dess adress, t.ex.
+// "https://www.youtube.com/watch?v=XXXXXXXX", och fyll i sekundtal per knep
+// i FILM_TIDER. Då dyker "Se knepet i filmen"-knappar upp av sig själva på
+// korten under Knepen (kortens data-film-attribut pekar in i tabellen).
+const FILM_URL = "";
+const FILM_TIDER = { flip: 0, "1": 0, "10": 0, "5": 0, "9": 0, "2": 0, "4": 0, "3": 0, sex: 0 };
+
+function renderFilmButtons() {
+  if (!FILM_URL) return;
+  $$("[data-film]").forEach((card) => {
+    const t = FILM_TIDER[card.dataset.film] || 0;
+    const a = document.createElement("a");
+    a.className = "btn small secondary film-btn";
+    a.textContent = "Se knepet i filmen";
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.href = FILM_URL + (FILM_URL.includes("?") ? "&" : "?") + "t=" + t + "s";
+    card.appendChild(a);
+  });
 }
 
 /* ---------- Frågeval ---------- */
@@ -422,6 +507,7 @@ function startRound(opts) {
     bestStreak: 0,
     misses: new Set(),
     slows: new Set(),
+    hints: new Set(), // tal som satt först efter ledtråd
     need: {},       // revansch: fel kräver två rätt i rad innan talet släpps
     autoKnown: [],  // tal som bockades av automatiskt under rundan
     results: [],
@@ -487,6 +573,21 @@ function submitAnswer(skip) {
   const ms = performance.now() - cur.t0;
   const answer = cur.a * cur.b;
   const correct = !skip && Number(raw) === answer;
+  const fb = $("#feedback");
+  const tip = tipFor(cur.a, cur.b);
+
+  // Ledtråd först: vid första felet (eller "Vet inte") visas bara knepet,
+  // utan facit, och man får en ny chans att komma på svaret själv.
+  if (!correct && !cur.hinted) {
+    cur.hinted = true;
+    const input = $("#q-input");
+    input.value = "";
+    input.focus();
+    fb.innerHTML =
+      `<div class="fb hint">${skip ? "Prova med knepet:" : "Inte riktigt. Prova med knepet:"}</div>` +
+      `<div class="tip-box"><strong>${tip.title}</strong><br>${tip.hint || tip.text}</div>`;
+    return;
+  }
 
   cur.done = true;
   $("#q-input").disabled = true;
@@ -494,30 +595,39 @@ function submitAnswer(skip) {
 
   const slowLimit = slowMs();
   const quickLimit = fastMs();
-  recordAnswer(cur.key, correct, correct ? ms : null);
+  const hinted = correct && cur.hinted; // rätt, men först efter ledtråden
+  recordAnswer(cur.key, correct, correct && !hinted ? ms : null);
   q.answered++;
-  q.results.push({ key: cur.key, a: cur.a, b: cur.b, correct, ms });
+  q.results.push({ key: cur.key, a: cur.a, b: cur.b, correct, ms, hinted: !!cur.hinted });
 
   if (correct) {
     q.corrects++;
-    q.streak++;
-    q.bestStreak = Math.max(q.bestStreak, q.streak);
-    state.totals.bestStreak = Math.max(state.totals.bestStreak, q.streak);
-    if (ms >= slowLimit) q.slows.add(cur.key);
+    if (hinted) {
+      // räknas som rätt i rundan, men talet måste bevisas utan hjälp
+      q.streak = 0;
+      q.hints.add(cur.key);
+      q.need[cur.key] = 2;
+      requeue(cur.key);
+    } else {
+      q.streak++;
+      q.bestStreak = Math.max(q.bestStreak, q.streak);
+      state.totals.bestStreak = Math.max(state.totals.bestStreak, q.streak);
+      if (ms >= slowLimit) q.slows.add(cur.key);
 
-    // revansch: ett tal som blivit fel måste sitta två gånger i rad
-    if (q.need[cur.key]) {
-      q.need[cur.key]--;
-      if (q.need[cur.key] > 0) requeue(cur.key);
-      else delete q.need[cur.key];
-    }
+      // revansch: ett tal som blivit fel måste sitta två gånger i rad
+      if (q.need[cur.key]) {
+        q.need[cur.key]--;
+        if (q.need[cur.key] > 0) requeue(cur.key);
+        else delete q.need[cur.key];
+      }
 
-    // tre snabba rätt i rad: talet sitter, bocka av det automatiskt
-    const st = getStat(cur.key);
-    if (!state.known[cur.key] && st.fastRow >= AUTO_KNOWN_ROW) {
-      state.known[cur.key] = true;
-      q.autoKnown.push(cur.key);
-      toast(`${cur.a} × ${cur.b} sitter! Avbockad i tabellen.`);
+      // tre snabba rätt i rad: talet sitter, bocka av det automatiskt
+      const st = getStat(cur.key);
+      if (!state.known[cur.key] && st.fastRow >= AUTO_KNOWN_ROW) {
+        state.known[cur.key] = true;
+        q.autoKnown.push(cur.key);
+        toast(`${cur.a} × ${cur.b} sitter! Avbockad i tabellen.`);
+      }
     }
   } else {
     q.streak = 0;
@@ -527,19 +637,22 @@ function submitAnswer(skip) {
   save();
   updateStreakBadge();
 
-  const fb = $("#feedback");
-  if (correct && ms < slowLimit) {
+  if (correct && hinted) {
+    fb.innerHTML = `<div class="fb ok">Rätt! Knepet funkade.</div>`;
+    q.timer = setTimeout(nextQuestion, 900);
+  } else if (correct && ms < slowLimit) {
     fb.innerHTML = `<div class="fb ok">Rätt!${ms < quickLimit ? " Blixtsnabbt!" : ""}</div>`;
     q.timer = setTimeout(nextQuestion, 800);
   } else {
-    const tip = tipFor(cur.a, cur.b);
     const head = correct
       ? `<div class="fb ok">Rätt! Men den tog en liten stund.</div>`
       : `<div class="fb bad">${skip ? "" : "Inte riktigt, "}${cur.a} × ${cur.b} = <strong>${answer}</strong></div>`;
     fb.innerHTML =
       head +
       `<div class="tip-box"><strong>${tip.title}</strong><br>${tip.text}</div>` +
+      (correct ? "" : dotsHtml(cur.a, cur.b)) +
       `<button class="btn" id="next-btn">Nästa</button>`;
+    if (!correct) bindDotsFlip(fb, cur.a, cur.b);
     $("#next-btn").addEventListener("click", nextQuestion);
     $("#next-btn").focus();
     if (!correct) requeue(cur.key);
@@ -574,7 +687,7 @@ function finishRound() {
   else if (pct >= 50) { headline = "Bra kämpat!"; ringColor = "#d97706"; }
   else { headline = "Bra start, knepen hjälper dig!"; ringColor = "#be185d"; }
 
-  const correctTimes = q.results.filter((r) => r.correct);
+  const correctTimes = q.results.filter((r) => r.correct && !r.hinted);
   let statPills = "";
   if (q.bestStreak >= 3) statPills += `<span class="pill">Svit: ${q.bestStreak}</span>`;
   if (correctTimes.length) {
@@ -584,7 +697,7 @@ function finishRound() {
     statPills += `<span class="pill">Snabbast: ${fastest.a} × ${fastest.b} (${fmtSec(fastest.ms)})</span>`;
   }
 
-  const workKeys = [...new Set([...q.misses, ...q.slows])];
+  const workKeys = [...new Set([...q.misses, ...q.hints, ...q.slows])];
   let workHtml = "";
   if (workKeys.length) {
     const rows = workKeys
@@ -593,6 +706,7 @@ function finishRound() {
         const tip = tipFor(a, b);
         const tags =
           (q.misses.has(k) ? `<span class="chip-tag chip-bad">fel</span>` : "") +
+          (q.hints.has(k) && !q.misses.has(k) ? `<span class="chip-tag chip-hint">med ledtråd</span>` : "") +
           (q.slows.has(k) ? `<span class="chip-tag chip-slow">långsam</span>` : "");
         return `<div class="work-row">
           <div class="work-fact">${a} × ${b} = ${a * b}${tags}</div>
@@ -1040,6 +1154,48 @@ function setupContactPeek() {
   io.observe(contact);
 }
 
+/* ---------- Läxlänkar: starta träning direkt via adressen ---------- */
+// gångertabellen.se/#tabell=5,9&antal=10 startar en runda direkt, perfekt att
+// skicka som läxa. Även #traning=sex-svara och #traning=luckor fungerar.
+function startFromHash() {
+  const h = location.hash.replace(/^#/, "");
+  if (!h) return false;
+  const params = new URLSearchParams(h);
+
+  const antal = Number(params.get("antal"));
+  if ([5, 10, 20].includes(antal)) {
+    state.settings.count = antal;
+    save();
+  }
+
+  const traning = params.get("traning");
+  if (traning === "sex-svara") {
+    startRound({ facts: HARD_SIX, keepKnown: true, count: Math.max(state.settings.count, 6), label: "De sex svåra" });
+    return true;
+  }
+  if (traning === "luckor") {
+    const weak = weakFacts().slice(0, 8);
+    if (!weak.length) return false;
+    startRound({ facts: weak, keepKnown: true, label: "Mina luckor" });
+    return true;
+  }
+
+  const tabell = params.get("tabell");
+  if (tabell) {
+    const tables = [...new Set(tabell.split(",").map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 10))];
+    if (tables.length) {
+      state.settings.lastTables = tables;
+      save();
+      renderTableChips();
+      const sorted = [...tables].sort((x, y) => x - y);
+      const label = sorted.length === 10 ? "Hela tabellen" : "Tabell " + sorted.join(", ");
+      startRound({ tables, label });
+      return true;
+    }
+  }
+  return false;
+}
+
 // Tillbaka till startvyn (samma som när man landar): Träna-fliken, uppstartsskärmen.
 function goHome() {
   if (quiz) {
@@ -1145,6 +1301,29 @@ function init() {
 
   // bilden som kikar upp bakom kontaktkortet
   setupContactPeek();
+
+  // filmknappar (visas bara när FILM_URL är satt)
+  renderFilmButtons();
+
+  // läxlänk: kopiera en adress som startar det valda träningsvalet direkt
+  $("#copy-link").addEventListener("click", async () => {
+    const tables = [...state.settings.lastTables].sort((x, y) => x - y);
+    if (!tables.length) {
+      toast("Välj minst en tabell först!");
+      return;
+    }
+    const url = location.href.split("#")[0] + "#tabell=" + tables.join(",") + "&antal=" + state.settings.count;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("Länk kopierad! Den som öppnar den hamnar direkt i träningen.");
+    } catch {
+      prompt("Kopiera länken:", url);
+    }
+  });
+
+  // läxlänkar i adressen startar träningen direkt
+  window.addEventListener("hashchange", startFromHash);
+  startFromHash();
 }
 
 if (typeof document !== "undefined" && document.addEventListener) {
@@ -1157,6 +1336,7 @@ if (typeof module !== "undefined" && module.exports) {
     keyOf, parseKey, median, tipFor, difficulty, weightOf, weakFacts,
     weightedSample, buildQueue, heatClass, recordAnswer, migrateStats,
     fastMs, greenMs, slowMs, weakMs, dueFactor, medTime, getStat, recentWrong,
+    dotsHtml, PLURAL,
     ALL_FACTS, HARD_SIX, MNEMONICS, BOX_REST_MS, state,
   };
 }
