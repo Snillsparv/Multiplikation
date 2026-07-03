@@ -246,9 +246,10 @@ const MNEMONICS = {
 // Ordning för korten under "Knepen" (samma ordning som i filmen).
 const MNEMONIC_ORDER = ["7x8", "8x8", "7x7", "6x6", "6x7", "6x8"];
 
-// Bilder ur filmen till minnesreglerna (bilder/<tal>.webp). 8x8 saknar bild.
+// Bilder ur filmen till minnesreglerna (bilder/<tal>.webp).
 const MNEMO_BILD_ALT = {
   "7x8": "56 = 7 x 8, siffrorna kommer i ordning",
+  "8x8": "8 x 8 = 64, Mario och Luigi",
   "7x7": "Sjösjuk pirat som firar nyår: 7 x 7 = 49",
   "6x6": "Sax gånger sax blir träsax: 6 x 6 = 36",
   "6x7": "Sjuan hackar sexan i en fyra och en tvåa: 6 x 7 = 42",

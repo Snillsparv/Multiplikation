@@ -645,6 +645,7 @@ body.tbl-fancy #mul-grid .cell.known {
   height: auto;
   margin: 10px auto;
   border-radius: 12px;
+  border: 3px solid #fff;
 }
 .mnemo p { margin: 0; font-size: 0.93rem; }
 .star-card .btn { width: 100%; margin-top: 8px; }
