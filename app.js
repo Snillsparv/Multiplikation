@@ -352,25 +352,47 @@ function bindDotsFlip(container, a, b) {
   });
 }
 
-/* ---------- Filmkoppling (vilande tills filmen är uppe) ---------- */
-// När filmen är uppladdad: sätt FILM_URL till dess adress, t.ex.
-// "https://www.youtube.com/watch?v=XXXXXXXX", och fyll i sekundtal per knep
-// i FILM_TIDER. Då dyker "Se knepet i filmen"-knappar upp av sig själva på
-// korten under Knepen (kortens data-film-attribut pekar in i tabellen).
-const FILM_URL = "";
+/* ---------- Filmen (inbäddad Vimeo-spelare) ---------- */
+// Spelaren laddas först när användaren trycker play, och med dnt=1 så att
+// Vimeo inte spårar. Sekundtalen anger var varje knep börjar i filmen;
+// kortens data-film-attribut pekar in i tabellen.
+const FILM_ID = "1206760390";
 const FILM_TIDER = { flip: 0, "1": 0, "10": 0, "5": 0, "9": 0, "2": 0, "4": 0, "3": 0, sex: 0 };
 
-function renderFilmButtons() {
-  if (!FILM_URL) return;
+function filmSrc(sec, autoplay) {
+  return `https://player.vimeo.com/video/${FILM_ID}?dnt=1&byline=0&portrait=0${autoplay ? "&autoplay=1" : ""}#t=${sec || 0}s`;
+}
+
+// Skapar spelaren vid behov och hoppar till rätt sekund.
+function showFilmAt(sec, autoplay) {
+  const wrap = $("#film-wrap");
+  let iframe = wrap.querySelector("iframe");
+  if (!iframe) {
+    wrap.innerHTML = "";
+    iframe = document.createElement("iframe");
+    iframe.allow = "autoplay; fullscreen; picture-in-picture";
+    iframe.allowFullscreen = true;
+    iframe.title = "Snillsparvs film om multiplikationstabellen";
+    wrap.appendChild(iframe);
+  }
+  iframe.src = filmSrc(sec, autoplay);
+}
+
+function bindFilmButtons() {
+  if (!FILM_ID) return;
+  $("#film-facade").addEventListener("click", () => showFilmAt(0, true));
+  const lugn = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   $$("[data-film]").forEach((card) => {
-    const t = FILM_TIDER[card.dataset.film] || 0;
-    const a = document.createElement("a");
-    a.className = "btn small secondary film-btn";
-    a.textContent = "Se knepet i filmen";
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.href = FILM_URL + (FILM_URL.includes("?") ? "&" : "?") + "t=" + t + "s";
-    card.appendChild(a);
+    const key = card.dataset.film;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn small secondary film-btn";
+    btn.textContent = "Se knepet i filmen";
+    btn.addEventListener("click", () => {
+      showFilmAt(FILM_TIDER[key] || 0, true);
+      $("#film-card").scrollIntoView({ behavior: lugn ? "auto" : "smooth", block: "start" });
+    });
+    card.appendChild(btn);
   });
 }
 
@@ -1302,8 +1324,8 @@ function init() {
   // bilden som kikar upp bakom kontaktkortet
   setupContactPeek();
 
-  // filmknappar (visas bara när FILM_URL är satt)
-  renderFilmButtons();
+  // filmen: spelare och hoppknappar per knep
+  bindFilmButtons();
 
   // läxlänk: kopiera en adress som startar det valda träningsvalet direkt
   $("#copy-link").addEventListener("click", async () => {

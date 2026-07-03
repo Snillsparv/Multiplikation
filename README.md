@@ -37,9 +37,10 @@ All träningsdata sparas lokalt i webbläsaren (localStorage).
   förinställd runda direkt, perfekt att skicka som läxa. En
   kopiera-knapp på startskärmen skapar länken åt dig. Även
   `#traning=sex-svara` och `#traning=luckor` fungerar.
-- Filmkoppling förberedd: när filmen är uppe sätts `FILM_URL` och
-  sekundtal per knep i `app.js`, så dyker "Se knepet i filmen"-knappar
-  upp på korten under Knepen.
+- Filmen är inbäddad under Knepen (Vimeo, spårningsfritt läge med dnt=1,
+  laddas först när man trycker play). Varje knep-kort har en "Se knepet
+  i filmen"-knapp som hoppar till rätt sekund; tiderna anges i
+  `FILM_TIDER` i `app.js`.
 - Smart repetition: tal som sitter "vilar" allt längre mellan gångerna
   (Leitner-lådor), och tre snabba rätt i rad bockar av talet automatiskt
   i tabellen. Tempogränserna anpassar sig efter användarens egen takt.

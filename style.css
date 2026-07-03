@@ -578,6 +578,57 @@ body.tbl-fancy #mul-grid .cell.known {
 }
 .tip-card p { margin: 6px 0 10px; }
 .film-btn { margin-left: 8px; margin-top: 6px; text-decoration: none; }
+
+/* Inbäddad film med klicka-för-att-ladda-fasad */
+.video-wrap {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #14162b;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.video-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.film-facade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(160deg, #1d2040, #14162b);
+  border: none;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.play-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease;
+}
+.play-circle::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 20px solid #fff;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  margin-left: 5px;
+}
+.film-facade:hover .play-circle { transform: scale(1.08); }
 .star-card { border: 2px solid #fcd34d; }
 .mnemo {
   background: var(--amber-tint);
