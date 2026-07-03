@@ -639,6 +639,13 @@ body.tbl-fancy #mul-grid .cell.known {
 }
 .mnemo-fact { font-weight: 900; font-size: 1.1rem; margin-bottom: 2px; }
 .mnemo-sep { font-weight: 400; opacity: 0.4; }
+.mnemo-img {
+  display: block;
+  width: min(100%, 280px);
+  height: auto;
+  margin: 10px auto;
+  border-radius: 12px;
+}
 .mnemo p { margin: 0; font-size: 0.93rem; }
 .star-card .btn { width: 100%; margin-top: 8px; }
 

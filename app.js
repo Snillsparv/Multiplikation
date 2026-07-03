@@ -246,6 +246,15 @@ const MNEMONICS = {
 // Ordning för korten under "Knepen" (samma ordning som i filmen).
 const MNEMONIC_ORDER = ["7x8", "8x8", "7x7", "6x6", "6x7", "6x8"];
 
+// Bilder ur filmen till minnesreglerna (bilder/<tal>.webp). 8x8 saknar bild.
+const MNEMO_BILD_ALT = {
+  "7x8": "56 = 7 x 8, siffrorna kommer i ordning",
+  "7x7": "Sjösjuk pirat som firar nyår: 7 x 7 = 49",
+  "6x6": "Sax gånger sax blir träsax: 6 x 6 = 36",
+  "6x7": "Sjuan hackar sexan i en fyra och en tvåa: 6 x 7 = 42",
+  "6x8": "Sex råttor blir fyra råttor: 6 x 8 = 48",
+};
+
 // Varje tips finns i två varianter: "text" (med facit, visas när frågan är
 // avgjord) och "hint" (utan facit, visas som ledtråd när man får försöka igen).
 // Minnesreglerna är sina egna ledtrådar, där är poängen att plocka svaret ur ramsan.
@@ -381,6 +390,20 @@ function filmSrc(sec, autoplay) {
   return `https://player.vimeo.com/video/${FILM_ID}?dnt=1&byline=0&portrait=0${autoplay ? "&autoplay=1" : ""}#t=${sec || 0}s`;
 }
 
+// Förvärmer anslutningarna till Vimeos servrar när användaren är på väg att
+// trycka play (hovrar/nuddar knappen). Ingen video hämtas förrän man klickar,
+// men handskakningarna är redan gjorda, så uppspelningen startar snabbare.
+function warmFilmConnections() {
+  if (warmFilmConnections.done) return;
+  warmFilmConnections.done = true;
+  ["https://player.vimeo.com", "https://i.vimeocdn.com", "https://f.vimeocdn.com", "https://vod-adaptive-ak.vimeocdn.com"].forEach((href) => {
+    const l = document.createElement("link");
+    l.rel = "preconnect";
+    l.href = href;
+    document.head.appendChild(l);
+  });
+}
+
 // Tar bort spelare (utom ev. den i angiven ruta). Fasaden ligger kvar under
 // och syns igen, så filmen kan enkelt startas på nytt.
 function stopFilm(exceptWrap) {
@@ -406,6 +429,9 @@ function playFilmIn(wrap, sec) {
 function bindFilmButtons() {
   if (!FILM_ID) return;
   $$(".film-facade").forEach((fac) => {
+    fac.addEventListener("pointerover", warmFilmConnections, { passive: true });
+    fac.addEventListener("touchstart", warmFilmConnections, { passive: true });
+    fac.addEventListener("focus", warmFilmConnections);
     fac.addEventListener("click", () => playFilmIn(fac.closest(".video-wrap"), 0));
   });
   const lugn = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -937,8 +963,10 @@ function renderMnemonicCards() {
     const [a, b] = parseKey(k);
     const m = MNEMONICS[k];
     const sec = FILM_TIDER[k];
+    const alt = MNEMO_BILD_ALT[k];
     return `<div class="mnemo">
       <div class="mnemo-fact">${a} × ${b} = ${a * b} <span class="mnemo-sep">|</span> ${m.title}</div>
+      ${alt ? `<img class="mnemo-img" src="bilder/${k}.webp" alt="${alt}" loading="lazy" width="640" height="640">` : ""}
       <p>${m.text}</p>
       ${FILM_ID && sec ? `<button type="button" class="linkish mnemo-film" data-sec="${sec}">Se i filmen (${fmtTid(sec)})</button>` : ""}
     </div>`;
