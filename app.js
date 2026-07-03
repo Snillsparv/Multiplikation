@@ -357,7 +357,25 @@ function bindDotsFlip(container, a, b) {
 // Vimeo inte spårar. Sekundtalen anger var varje knep börjar i filmen;
 // kortens data-film-attribut pekar in i tabellen.
 const FILM_ID = "1206760390";
-const FILM_TIDER = { flip: 0, "1": 0, "10": 0, "5": 0, "9": 0, "2": 0, "4": 0, "3": 0, sex: 0 };
+const FILM_TIDER = {
+  flip: 20,        // 0:20 Vänd på det
+  "1": 31,         // 0:31 Ettan och tian
+  "10": 31,
+  "5": 45,         // 0:45 Femmans
+  "9": 60,         // 1:00 Nians
+  "2": 90,         // 1:30 Tvåans
+  "4": 97,         // 1:37 Fyrans
+  "3": 105,        // 1:45 Treans
+  sex: 112,        // 1:52 De sex svåra
+  "7x8": 136,      // 2:16
+  "8x8": 154,      // 2:34
+  "7x7": 174,      // 2:54
+  "6x6": 198,      // 3:18
+  "6x7": 211,      // 3:31
+  "6x8": 228,      // 3:48
+};
+
+const fmtTid = (sec) => Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
 
 function filmSrc(sec, autoplay) {
   return `https://player.vimeo.com/video/${FILM_ID}?dnt=1&byline=0&portrait=0${autoplay ? "&autoplay=1" : ""}#t=${sec || 0}s`;
@@ -382,17 +400,22 @@ function bindFilmButtons() {
   if (!FILM_ID) return;
   $("#film-facade").addEventListener("click", () => showFilmAt(0, true));
   const lugn = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const hoppa = (sec) => {
+    showFilmAt(sec, true);
+    $("#film-card").scrollIntoView({ behavior: lugn ? "auto" : "smooth", block: "start" });
+  };
   $$("[data-film]").forEach((card) => {
-    const key = card.dataset.film;
+    const sec = FILM_TIDER[card.dataset.film] || 0;
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "btn small secondary film-btn";
-    btn.textContent = "Se knepet i filmen";
-    btn.addEventListener("click", () => {
-      showFilmAt(FILM_TIDER[key] || 0, true);
-      $("#film-card").scrollIntoView({ behavior: lugn ? "auto" : "smooth", block: "start" });
-    });
+    btn.textContent = `Se knepet i filmen (${fmtTid(sec)})`;
+    btn.addEventListener("click", () => hoppa(sec));
     card.appendChild(btn);
+  });
+  // minnesreglernas egna hopp-punkter
+  $$(".mnemo-film").forEach((btn) => {
+    btn.addEventListener("click", () => hoppa(Number(btn.dataset.sec) || 0));
   });
 }
 
@@ -903,9 +926,11 @@ function renderMnemonicCards() {
   wrap.innerHTML = MNEMONIC_ORDER.map((k) => {
     const [a, b] = parseKey(k);
     const m = MNEMONICS[k];
+    const sec = FILM_TIDER[k];
     return `<div class="mnemo">
       <div class="mnemo-fact">${a} × ${b} = ${a * b} <span class="mnemo-sep">|</span> ${m.title}</div>
       <p>${m.text}</p>
+      ${FILM_ID && sec ? `<button type="button" class="linkish mnemo-film" data-sec="${sec}">Se i filmen (${fmtTid(sec)})</button>` : ""}
     </div>`;
   }).join("");
 }
