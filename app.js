@@ -381,27 +381,36 @@ function filmSrc(sec, autoplay) {
   return `https://player.vimeo.com/video/${FILM_ID}?dnt=1&byline=0&portrait=0${autoplay ? "&autoplay=1" : ""}#t=${sec || 0}s`;
 }
 
-// Skapar spelaren vid behov och hoppar till rätt sekund.
-function showFilmAt(sec, autoplay) {
-  const wrap = $("#film-wrap");
+// Tar bort spelare (utom ev. den i angiven ruta). Fasaden ligger kvar under
+// och syns igen, så filmen kan enkelt startas på nytt.
+function stopFilm(exceptWrap) {
+  $$(".video-wrap iframe").forEach((f) => {
+    if (!exceptWrap || !exceptWrap.contains(f)) f.remove();
+  });
+}
+
+// Spelar filmen i en viss ruta från en viss sekund. Bara en spelare i taget.
+function playFilmIn(wrap, sec) {
+  stopFilm(wrap);
   let iframe = wrap.querySelector("iframe");
   if (!iframe) {
-    wrap.innerHTML = "";
     iframe = document.createElement("iframe");
     iframe.allow = "autoplay; fullscreen; picture-in-picture";
     iframe.allowFullscreen = true;
     iframe.title = "Snillsparvs film om multiplikationstabellen";
     wrap.appendChild(iframe);
   }
-  iframe.src = filmSrc(sec, autoplay);
+  iframe.src = filmSrc(sec, true);
 }
 
 function bindFilmButtons() {
   if (!FILM_ID) return;
-  $("#film-facade").addEventListener("click", () => showFilmAt(0, true));
+  $$(".film-facade").forEach((fac) => {
+    fac.addEventListener("click", () => playFilmIn(fac.closest(".video-wrap"), 0));
+  });
   const lugn = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const hoppa = (sec) => {
-    showFilmAt(sec, true);
+    playFilmIn($("#film-wrap"), sec);
     $("#film-card").scrollIntoView({ behavior: lugn ? "auto" : "smooth", block: "start" });
   };
   $$("[data-film]").forEach((card) => {
@@ -491,6 +500,7 @@ function toast(msg) {
 
 /* ---------- Flikar ---------- */
 function showTab(name) {
+  stopFilm(); // inget filmljud ska fortsätta i bakgrunden
   $$(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
   $$(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
   if (name === "tabell") renderGrid();
