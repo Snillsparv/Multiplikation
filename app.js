@@ -672,7 +672,13 @@ function submitAnswer(skip) {
   }
 
   cur.done = true;
-  $("#q-input").disabled = true;
+  // Fältet inaktiveras aldrig och behåller fokus under återkopplingen:
+  // annars stängs mobiltangentbordet (särskilt på iPhone/iPad, som vägrar
+  // öppna det igen utan ett fingertryck) och man tvingas trycka i fältet
+  // inför varje ny fråga. Fältet låses i stället logiskt via cur.done.
+  const inputEl = $("#q-input");
+  cur.finalValue = inputEl.value;
+  inputEl.focus();
   $("#q-buttons").hidden = true;
 
   const slowLimit = slowMs();
@@ -736,7 +742,6 @@ function submitAnswer(skip) {
       `<button class="btn" id="next-btn">Nästa</button>`;
     if (!correct) bindDotsFlip(fb, cur.a, cur.b);
     $("#next-btn").addEventListener("click", nextQuestion);
-    $("#next-btn").focus();
     if (!correct) requeue(cur.key);
   }
 }
@@ -1355,14 +1360,28 @@ function init() {
   // quiz
   const input = $("#q-input");
   input.addEventListener("input", () => {
-    input.value = input.value.replace(/\D/g, "");
     const cur = quiz && quiz.current;
-    if (!cur || cur.done) return;
+    // under återkopplingen är fältet låst men behåller fokus (tangentbordet
+    // ska inte stängas), så tangenttryck får inte ändra innehållet
+    if (cur && cur.done) {
+      input.value = cur.finalValue || "";
+      return;
+    }
+    input.value = input.value.replace(/\D/g, "");
+    if (!cur) return;
     // rätta automatiskt när rätt antal siffror är skrivna
     if (input.value.length >= String(cur.a * cur.b).length) submitAnswer(false);
   });
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") submitAnswer(false);
+    if (e.key !== "Enter") return;
+    const cur = quiz && quiz.current;
+    if (cur && cur.done) {
+      // mobiltangentbordets "klar" (eller Enter) går vidare till nästa fråga,
+      // men bara när det finns en Nästa-knapp, aldrig under autoframmatningen
+      if ($("#next-btn")) nextQuestion();
+    } else {
+      submitAnswer(false);
+    }
   });
   $("#ok-btn").addEventListener("click", () => submitAnswer(false));
   $("#idk-btn").addEventListener("click", () => submitAnswer(true));
