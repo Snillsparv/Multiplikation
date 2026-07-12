@@ -83,7 +83,8 @@
         <div class="q-display" id="q-display">7 × 8</div>
         <div class="answer-row">
           <span class="eq">=</span>
-          <input id="q-input" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" maxlength="3" aria-label="Ditt svar">
+          <!-- enterkeyhint="go": "done" får Android-tangentbord att stänga sig vid tryck -->
+          <input id="q-input" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="go" maxlength="3" aria-label="Ditt svar">
         </div>
         <div class="q-buttons" id="q-buttons">
           <button class="btn" id="ok-btn">Svara</button>

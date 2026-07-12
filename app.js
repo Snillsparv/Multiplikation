@@ -563,6 +563,9 @@ function renderTableChips() {
 }
 
 function startRound(opts) {
+  // en pendlande autoframmatnings-timer från förra rundan får inte
+  // avfyras in i den nya och hoppa över första frågan
+  if (quiz) clearTimeout(quiz.timer);
   let pool = opts.facts ? [...new Set(opts.facts)] : poolFromTables(opts.tables);
   if (pool.length === 0) {
     toast("Välj minst en tabell först!");
@@ -1378,7 +1381,13 @@ function init() {
     if (cur && cur.done) {
       // mobiltangentbordets "klar" (eller Enter) går vidare till nästa fråga,
       // men bara när det finns en Nästa-knapp, aldrig under autoframmatningen
-      if ($("#next-btn")) nextQuestion();
+      if ($("#next-btn")) {
+        nextQuestion();
+        // hängslen för envisa mobiltangentbord: begär fokus på nytt inom
+        // samma gest, ifall tangentbordet hann påbörja en stängning
+        input.blur();
+        input.focus();
+      }
     } else {
       submitAnswer(false);
     }
