@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Affischer – Gångertabellen</title>
+  <meta name="description" content="Utskrivbara A4-affischer med alla knep ur Snillsparvs film om multiplikationstabellen. Sätt upp dem på väggen i klassrummet eller hemma.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Crect x='18' y='18' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='54' y='18' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='18' y='54' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='54' y='54' width='28' height='28' rx='8' fill='%23fbbf24'/%3E%3C/svg%3E">
+  <style>
+    /* Typsnitten ligger lokalt så att sidan (och PDF-bygget) inte behöver
+       nå Google Fonts: nunito.woff2 är variabelt och täcker alla vikter. */
+    @font-face {
+      font-family: "Nunito";
+      font-weight: 400 900;
+      font-display: swap;
+      src: url(fonter/nunito.woff2) format("woff2");
+    }
+    @font-face {
+      font-family: "Caveat";
+      font-weight: 700;
+      font-display: swap;
+      src: url(fonter/caveat-700.woff2) format("woff2");
+    }
+    @page { size: A4; margin: 0; }
+    :root {
+      --primary: #4f46e5;
+      --primary-tint: #eef0fe;
+      --green: #16a34a;
+      --green-tint: #e8f8ee;
+      --blue: #2563eb;
+      --blue-tint: #e8effd;
+      --teal: #0d9488;
+      --teal-tint: #e2f5f2;
+      --amber: #d97706;
+      --amber-grid: #f59e0b;
+      --amber-tint: #fff7e0;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e6e8f2;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body {
+      font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background: #d8d3c4;
+    }
+
+    /* ---------- verktygsraden (bara på skärm) ---------- */
+    .toolbar {
+      position: sticky; top: 0; z-index: 5;
+      background: #faf1d4; border-bottom: 1px solid #e3d9b8;
+      padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+    }
+    .toolbar h1 { font-size: 18px; font-weight: 900; }
+    .toolbar p { font-size: 14px; color: var(--muted); flex: 1 1 260px; }
+    .toolbar .btn {
+      font: inherit; font-weight: 800; font-size: 15px; cursor: pointer;
+      background: var(--primary); color: #fff; border: 0; border-radius: 12px; padding: 10px 18px;
+    }
+    .toolbar a { color: var(--primary); font-weight: 700; }
+
+    /* ---------- arken ---------- */
+    .sheet {
+      width: 210mm; height: 297mm; overflow: hidden;
+      background: #fff; position: relative;
+      padding: 16mm 16mm 20mm;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+    @media screen {
+      .sheet { margin: 22px auto; box-shadow: 0 4px 22px rgba(31, 41, 90, 0.25); border-radius: 4px; }
+      @media (max-width: 840px) {
+        .pages { zoom: 0.45; }
+      }
+    }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+      .sheet { break-after: page; }
+      .sheet:last-of-type { break-after: auto; }
+    }
+
+    .sheet footer {
+      position: absolute; left: 0; right: 0; bottom: 9mm;
+      font-size: 10.5pt; font-weight: 700; color: var(--muted);
+    }
+    .sheet footer strong { color: var(--primary); font-weight: 900; }
+
+    .head { display: flex; align-items: center; gap: 7mm; margin-bottom: 4mm; }
+    .badge {
+      width: 24mm; height: 24mm; border-radius: 6mm; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 34pt; font-weight: 900;
+    }
+    .head h2 { font-size: 30pt; font-weight: 900; }
+    .rule { font-size: 34pt; font-weight: 900; line-height: 1.15; margin-top: 6mm; }
+    .sub { font-size: 15.5pt; font-weight: 700; color: var(--muted); line-height: 1.35; margin-top: 4mm; max-width: 160mm; }
+    .ex {
+      display: inline-block; margin-top: 7mm; padding: 5mm 9mm; border-radius: 7mm;
+      font-size: 25pt; font-weight: 900; white-space: nowrap;
+    }
+
+    /* färgtema per strategi */
+    .t-flip .badge, .dot.c-flip { background: var(--primary); }
+    .t-flip .rule strong { color: var(--primary); }
+    .t-flip .ex { background: var(--primary-tint); color: var(--primary); }
+    .t-free .badge, .dot.c-free { background: var(--green); }
+    .t-free .rule strong { color: var(--green); }
+    .t-free .ex { background: var(--green-tint); color: var(--green); }
+    .t-trick .badge, .dot.c-trick { background: var(--blue); }
+    .t-trick .rule strong { color: var(--blue); }
+    .t-trick .ex { background: var(--blue-tint); color: var(--blue); }
+    .t-double .badge, .dot.c-double { background: var(--teal); }
+    .t-double .rule strong { color: var(--teal); }
+    .t-double .ex { background: var(--teal-tint); color: var(--teal); }
+    .t-memo .badge, .dot.c-memo { background: var(--amber-grid); }
+    .t-memo .ex { background: var(--amber-tint); color: var(--amber); }
+
+    /* ---------- rutnätet (filmens krympande tabell) ---------- */
+    .grid { display: grid; gap: 1.4mm; margin-top: auto; margin-bottom: auto; }
+    .cell {
+      border-radius: 1.6mm; border: 0.5mm solid transparent;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; color: #fff;
+    }
+    .cell.remain { background: #fff; border-color: #cfd4e6; }
+    .cell.gone { background: #f1f2f7; }
+    .cell.six { background: var(--amber-grid); }
+    .cell.hdr { background: none; color: var(--muted); font-size: 11pt; font-weight: 800; }
+    .grid-caption { font-size: 17pt; font-weight: 900; margin-top: 5mm; }
+    .grid-caption span { color: var(--muted); font-weight: 700; }
+
+    /* översiktsarket */
+    .overview h2 { font-size: 34pt; font-weight: 900; line-height: 1.1; }
+    .overview .sub { margin-top: 3mm; }
+    .legend { list-style: none; padding: 0; margin-top: 6mm; text-align: left; }
+    .legend li { display: flex; align-items: center; gap: 4mm; font-size: 14.5pt; font-weight: 800; margin-top: 2.6mm; }
+    .dot { width: 6.5mm; height: 6.5mm; border-radius: 2mm; flex: none; }
+
+    /* minnesregelarken */
+    .memo-eq { font-size: 44pt; font-weight: 900; }
+    .memo-eq span { color: var(--amber); }
+    .ramsa { font-family: "Caveat", "Comic Sans MS", cursive; font-size: 40pt; color: var(--amber); line-height: 1; margin-top: 3mm; }
+    .memo-img {
+      width: 118mm; height: 118mm; border-radius: 8mm; margin-top: auto; margin-bottom: auto;
+      box-shadow: 0 2px 12px rgba(31, 41, 90, 0.18);
+    }
+    .memo-text { font-size: 16.5pt; font-weight: 700; line-height: 1.4; max-width: 158mm; margin-bottom: 2mm; }
+    .memo-star {
+      position: absolute; top: 12mm; right: 14mm; width: 17mm; height: 17mm; border-radius: 5mm;
+      background: var(--amber-grid); color: #fff; font-size: 22pt; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div>
+    <h1>Affischer till väggen</h1>
+    <p>Alla knep ur filmen som A4-blad.</p>
+  </div>
+  <p>Skriv ut hela paketet eller välj sidor i utskriftsrutan. Skriv gärna ut i färg, och slå på ”Bakgrundsgrafik” om färgerna inte kommer med. Du kan också <a href="affischer.pdf">ladda ner allt som PDF</a>. <a href="./">Tillbaka till gångertabellen.se</a></p>
+  <button type="button" class="btn" onclick="print()">Skriv ut</button>
+</div>
+
+<div class="pages">
+
+  <!-- ============ 1. Översikten ============ -->
+  <section class="sheet overview">
+    <h2>Hundra tal att lära sig utantill?<br>Nej då!</h2>
+    <p class="sub">Tittar man närmre är det bara en handfull man faktiskt behöver lägga på minnet. Så här krymper högen:</p>
+    <div class="grid" data-overview style="grid-template-columns: repeat(11, 11.5mm); grid-auto-rows: 11.5mm; font-size: 13pt;"></div>
+    <ul class="legend">
+      <li><span class="dot c-flip"></span>Vänd på talen, nästan hälften försvinner</li>
+      <li><span class="dot c-free"></span>Ettan och tian är gratis</li>
+      <li><span class="dot c-trick"></span>Femman och nian har superknep</li>
+      <li><span class="dot c-double"></span>Tvåan, fyran och trean är bara dubblor</li>
+      <li><span class="dot c-memo"></span>Kvar: bara 6 tal att memorera!</li>
+    </ul>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <!-- ============ 2–9. Strategierna ============ -->
+  <section class="sheet t-flip">
+    <div class="head"><span class="badge">×</span><h2>Vänd på det!</h2></div>
+    <p class="rule">4 × 6 är samma sak<br>som <strong>6 × 4</strong></p>
+    <p class="sub">Det spelar ingen roll i vilken ordning talen står. Kan du den ena kan du också den andra, där försvinner nästan hälften av tabellen direkt!</p>
+    <span class="ex">4 × 6 = 6 × 4 = 24</span>
+    <div class="grid" data-mini-step="0" style="grid-template-columns: repeat(10, 9mm); grid-auto-rows: 9mm;"></div>
+    <p class="grid-caption" data-count="0"></p>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-free">
+    <div class="head"><span class="badge">1</span><h2>Ettans tabell</h2></div>
+    <p class="rule"><strong>Ingenting händer!</strong></p>
+    <p class="sub">Multiplicerar du med 1 är talet kvar precis som det var.</p>
+    <span class="ex">1 × 7 = 7</span>
+    <div class="grid" data-mini-step="1" style="grid-template-columns: repeat(10, 9mm); grid-auto-rows: 9mm;"></div>
+    <p class="grid-caption" data-count="1"></p>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-free">
+    <div class="head"><span class="badge">10</span><h2>Tians tabell</h2></div>
+    <p class="rule"><strong>Lägg till en nolla</strong><br>på slutet!</p>
+    <span class="ex">7 × 10 = 70</span>
+    <div class="grid" data-mini-step="2" style="grid-template-columns: repeat(10, 9mm); grid-auto-rows: 9mm;"></div>
+    <p class="grid-caption" data-count="2"></p>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-trick">
+    <div class="head"><span class="badge">5</span><h2>Femmans tabell</h2></div>
+    <p class="rule"><strong>Halvera talet</strong> och<br>ta sedan gånger tio!</p>
+    <p class="sub">Fem är ju hälften av tio.</p>
+    <span class="ex">8 × 5 = 4 × 10 = 40</span>
+    <div class="grid" data-mini-step="3" style="grid-template-columns: repeat(10, 9mm); grid-auto-rows: 9mm;"></div>
+    <p class="grid-caption" data-count="3"></p>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-trick">
+    <div class="head"><span class="badge">9</span><h2>Nians tabell</h2></div>
+    <p class="rule">Siffrorna i svaret blir<br><strong>9 tillsammans</strong></p>
+    <p class="sub">Första siffran är alltid ett mindre än talet du gångrar med, och svarets två siffror blir 9 ihop.</p>
+    <span class="ex">7 × 9 → först 6, sedan 3 → 63</span>
+    <div class="grid" data-mini-step="4" style="grid-template-columns: repeat(10, 9mm); grid-auto-rows: 9mm;"></div>
+    <p class="grid-caption" data-count="4"></p>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-double">
+    <div class="head"><span class="badge">2</span><h2>Tvåans tabell</h2></div>
+    <p class="rule"><strong>Dubbla talet!</strong></p>
+    <p class="sub">Gånger två är bara att plussa talet med sig självt, enkel addition alltså.</p>
+    <span class="ex">6 × 2 = 6 + 6 = 12</span>
+    <div class="grid" data-mini-step="5" style="grid-template-columns: repeat(10, 9mm); grid-auto-rows: 9mm;"></div>
+    <p class="grid-caption" data-count="5"></p>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-double">
+    <div class="head"><span class="badge">4</span><h2>Fyrans tabell</h2></div>
+    <p class="rule"><strong>Dubbla två gånger!</strong></p>
+    <p class="sub">Fyrans tabell är dubbelt så mycket som tvåans.</p>
+    <span class="ex">6 × 4: 6 → 12 → 24</span>
+    <div class="grid" data-mini-step="6" style="grid-template-columns: repeat(10, 9mm); grid-auto-rows: 9mm;"></div>
+    <p class="grid-caption" data-count="6"></p>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-double">
+    <div class="head"><span class="badge">3</span><h2>Treans tabell</h2></div>
+    <p class="rule"><strong>Dubbla talet</strong> och lägg<br>sedan till det en gång till!</p>
+    <span class="ex">7 × 3: 7 + 7 = 14, 14 + 7 = 21</span>
+    <div class="grid" data-mini-step="7" style="grid-template-columns: repeat(10, 9mm); grid-auto-rows: 9mm;"></div>
+    <p class="grid-caption" data-count="7"></p>
+    <footer><strong>www.gångertabellen.se</strong> · Knepen ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <!-- ============ 10–15. De sex att memorera ============ -->
+  <section class="sheet t-memo">
+    <span class="memo-star">★</span>
+    <p class="memo-eq">7 × 8 = <span>56</span></p>
+    <p class="ramsa">”5, 6, 7, 8!”</p>
+    <img class="memo-img" src="bilder/7x8.webp" alt="56 = 7 x 8, siffrorna kommer i ordning">
+    <p class="memo-text">Skriv svaret först, så blir det 56&nbsp;=&nbsp;7&nbsp;×&nbsp;8. Det är bara siffrorna i ordning: 5,&nbsp;6,&nbsp;7,&nbsp;8!</p>
+    <footer><strong>www.gångertabellen.se</strong> · Minnesreglerna ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-memo">
+    <span class="memo-star">★</span>
+    <p class="memo-eq">8 × 8 = <span>64</span></p>
+    <p class="ramsa">”Mario och Luigi!”</p>
+    <img class="memo-img" src="bilder/8x8.webp" alt="8 x 8 = 64, Mario och Luigi">
+    <p class="memo-text">Mario och Luigi ser ut som två åttor, och de kommer från Nintendo&nbsp;64. Alltså: 8&nbsp;×&nbsp;8&nbsp;=&nbsp;64!</p>
+    <footer><strong>www.gångertabellen.se</strong> · Minnesreglerna ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-memo">
+    <span class="memo-star">★</span>
+    <p class="memo-eq">7 × 7 = <span>49</span></p>
+    <p class="ramsa">”Sjösjuk? Fira nyår!”</p>
+    <img class="memo-img" src="bilder/7x7.webp" alt="Sjösjuk pirat som firar nyår: 7 x 7 = 49">
+    <p class="memo-text">Sju sju låter som ”sjösjuk” och fyra nio som ”fira nyår”. Tänk dig en sjösjuk pirat som firar nyår: 7&nbsp;×&nbsp;7&nbsp;=&nbsp;49!</p>
+    <footer><strong>www.gångertabellen.se</strong> · Minnesreglerna ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-memo">
+    <span class="memo-star">★</span>
+    <p class="memo-eq">6 × 6 = <span>36</span></p>
+    <p class="ramsa">”Sax, sax, träsax!”</p>
+    <img class="memo-img" src="bilder/6x6.webp" alt="Sax gånger sax blir träsax: 6 x 6 = 36">
+    <p class="memo-text">Sex låter som sax: ”sax, sax, träsax”, 6,&nbsp;6,&nbsp;3,&nbsp;6. Tänk dig en träsax så sitter den i ett klipp: 6&nbsp;×&nbsp;6&nbsp;=&nbsp;36!</p>
+    <footer><strong>www.gångertabellen.se</strong> · Minnesreglerna ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-memo">
+    <span class="memo-star">★</span>
+    <p class="memo-eq">6 × 7 = <span>42</span></p>
+    <p class="ramsa">”Hackan!”</p>
+    <img class="memo-img" src="bilder/6x7.webp" alt="Sjuan hackar sexan i en fyra och en tvåa: 6 x 7 = 42">
+    <p class="memo-text">7:an ser ut som en hacka som hackar 6:an i två bitar: en 4:a och en 2:a (4&nbsp;+&nbsp;2&nbsp;=&nbsp;6). Så 6&nbsp;×&nbsp;7&nbsp;=&nbsp;42!</p>
+    <footer><strong>www.gångertabellen.se</strong> · Minnesreglerna ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+  <section class="sheet t-memo">
+    <span class="memo-star">★</span>
+    <p class="memo-eq">6 × 8 = <span>48</span></p>
+    <p class="ramsa">”Sex råttor!”</p>
+    <img class="memo-img" src="bilder/6x8.webp" alt="Sex råttor blir fyra råttor: 6 x 8 = 48">
+    <p class="memo-text">Åtta rimmar på råtta: sex råttor! Två äter upp varandra och kvar är fyra råttor, 4 och 8 ger 48. Så 6&nbsp;×&nbsp;8&nbsp;=&nbsp;48!</p>
+    <footer><strong>www.gångertabellen.se</strong> · Minnesreglerna ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+
+</div>
+
+<script>
+// Samma krympordning som i filmen och på sajten (eliminationStep i app.js):
+// 0 = spegelhalvan, 1..7 = ettan, tian, femman, nian, tvåan, fyran, trean,
+// -1 = en av de sex svåra som blir kvar.
+function eliminationStep(r, c) {
+  if (c > r) return 0;
+  const order = [1, 10, 5, 9, 2, 4, 3];
+  for (let i = 0; i < order.length; i++) {
+    if (r === order[i] || c === order[i]) return i + 1;
+  }
+  return -1;
+}
+
+const STEP_COLOR = ["#4f46e5", "#16a34a", "#16a34a", "#2563eb", "#2563eb", "#0d9488", "#0d9488", "#0d9488"];
+
+// Strategiarken: rutorna som just det här knepet stryker lyser i knepets
+// färg, tidigare strukna är urblekta och resten står kvar.
+document.querySelectorAll("[data-mini-step]").forEach((grid) => {
+  const step = Number(grid.dataset.miniStep);
+  let remain = 0;
+  for (let r = 1; r <= 10; r++) {
+    for (let c = 1; c <= 10; c++) {
+      const cell = document.createElement("span");
+      cell.className = "cell";
+      const e = eliminationStep(r, c);
+      if (e === step) {
+        cell.style.background = STEP_COLOR[step];
+      } else if (e !== -1 && e < step) {
+        cell.classList.add("gone");
+      } else {
+        cell.classList.add("remain");
+        remain++;
+      }
+      grid.appendChild(cell);
+    }
+  }
+  const cap = document.querySelector(`[data-count="${step}"]`);
+  if (cap) cap.innerHTML = `Nu är det bara <strong>${remain} tal</strong> kvar! <span>(av 100 från början)</span>`;
+});
+
+// Översiktsarket: hela kartan i slutfärgerna, med radhuvuden och svaren
+// inskrivna i de sex rutor som blir kvar att memorera.
+document.querySelectorAll("[data-overview]").forEach((grid) => {
+  for (let r = 0; r <= 10; r++) {
+    for (let c = 0; c <= 10; c++) {
+      const cell = document.createElement("span");
+      cell.className = "cell";
+      if (r === 0 || c === 0) {
+        cell.classList.add("hdr");
+        if (r + c > 0) cell.textContent = r === 0 ? c : r;
+        else cell.textContent = "×";
+      } else {
+        const e = eliminationStep(r, c);
+        if (e === -1) {
+          cell.classList.add("six");
+          cell.textContent = r * c;
+        } else {
+          cell.style.background = STEP_COLOR[e];
+          if (e === 0) cell.style.opacity = "0.35";
+        }
+      }
+      grid.appendChild(cell);
+    }
+  }
+});
+</script>
+
+</body>
+</html>

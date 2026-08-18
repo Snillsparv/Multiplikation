@@ -45,6 +45,14 @@ All träningsdata sparas lokalt i webbläsaren (localStorage).
 - Smart repetition: tal som sitter "vilar" allt längre mellan gångerna
   (Leitner-lådor), och tre snabba rätt i rad bockar av talet automatiskt
   i tabellen. Tempogränserna anpassar sig efter användarens egen takt.
+- Affischer till klassrumsväggen: `affischer.html` är en utskriftssida
+  med alla knep som A4-blad (översikten, de åtta strategierna och de sex
+  minnesreglerna med bilderna ur filmen), länkad från Knepen-fliken.
+  `affischer.pdf` är samma paket som färdig PDF; generera om den ur
+  sidan med Chromium/Playwright (`page.pdf({ format: "A4",
+  printBackground: true, preferCSSPageSize: true })`) om arken ändras.
+  Typsnitten ligger lokalt i `fonter/` så att sidan fungerar utan
+  Google Fonts.
 
 ## Kör lokalt
 
