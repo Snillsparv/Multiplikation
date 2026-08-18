@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stora affischen – Gångertabellen</title>
+  <meta name="description" content="Hela multiplikationsmetoden på en enda stor affisch (A2): kartan, alla knep och de sex minnesreglerna ur Snillsparvs film.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Crect x='18' y='18' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='54' y='18' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='18' y='54' width='28' height='28' rx='8' fill='white' opacity='.6'/%3E%3Crect x='54' y='54' width='28' height='28' rx='8' fill='%23fbbf24'/%3E%3C/svg%3E">
+  <style>
+    /* Samma lokala typsnitt som affischer.html */
+    @font-face {
+      font-family: "Nunito";
+      font-weight: 400 900;
+      font-display: swap;
+      src: url(fonter/nunito.woff2) format("woff2");
+    }
+    @font-face {
+      font-family: "Caveat";
+      font-weight: 700;
+      font-display: swap;
+      src: url(fonter/caveat-700.woff2) format("woff2");
+    }
+    /* A2 stående: skriv ut i A2 eller A3 för väggen, eller "anpassa till
+       sida" i A4 som sammanfattningsblad. */
+    @page { size: 420mm 594mm; margin: 0; }
+    :root {
+      --primary: #4f46e5;
+      --primary-tint: #eef0fe;
+      --green: #16a34a;
+      --green-tint: #e8f8ee;
+      --blue: #2563eb;
+      --blue-tint: #e8effd;
+      --teal: #0d9488;
+      --teal-tint: #e2f5f2;
+      --amber: #d97706;
+      --amber-grid: #f59e0b;
+      --amber-tint: #fff7e0;
+      --text: #1f2937;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body {
+      font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background: #d8d3c4;
+    }
+
+    .toolbar {
+      position: sticky; top: 0; z-index: 5;
+      background: #faf1d4; border-bottom: 1px solid #e3d9b8;
+      padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+    }
+    .toolbar h1 { font-size: 18px; font-weight: 900; }
+    .toolbar p { font-size: 14px; color: var(--muted); flex: 1 1 260px; }
+    .toolbar .btn {
+      font: inherit; font-weight: 800; font-size: 15px; cursor: pointer;
+      background: var(--primary); color: #fff; border: 0; border-radius: 12px; padding: 10px 18px;
+    }
+    .toolbar a { color: var(--primary); font-weight: 700; }
+
+    .sheet {
+      width: 420mm; height: 594mm; overflow: hidden;
+      background: #faf1d4; position: relative;
+      padding: 16mm 18mm 16mm;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    @media screen {
+      .sheet { margin: 22px auto; box-shadow: 0 4px 22px rgba(31, 41, 90, 0.25); border-radius: 4px; }
+      @media (max-width: 1700px) { .wrap { zoom: 0.55; } }
+      @media (max-width: 900px) { .wrap { zoom: 0.28; } }
+    }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+    }
+
+    .head { text-align: center; }
+    .head h2 { font-size: 56pt; font-weight: 900; line-height: 1.05; }
+    .head p { font-size: 20pt; font-weight: 700; color: var(--muted); margin-top: 4mm; }
+
+    .mid { display: flex; gap: 12mm; margin-top: 8mm; margin-bottom: 8mm; align-items: center; }
+
+    /* vänster: kartan + förklaringen */
+    .map { flex: none; text-align: center; }
+    .grid { display: grid; gap: 1.8mm; justify-content: center; }
+    .cell {
+      border-radius: 2mm; border: 0.6mm solid transparent;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; color: #fff;
+    }
+    .cell.six { background: var(--amber-grid); }
+    .cell.hdr { background: none; color: var(--muted); font-size: 14pt; font-weight: 800; }
+    .legend { list-style: none; padding: 0; margin: 8mm auto 0; display: inline-block; text-align: left; }
+    .legend li { display: flex; align-items: center; gap: 4mm; font-size: 16.5pt; font-weight: 800; margin-top: 3.4mm; }
+    .dot { width: 7.5mm; height: 7.5mm; border-radius: 2.2mm; flex: none; }
+    .dot.c-flip { background: var(--primary); }
+    .dot.c-free { background: var(--green); }
+    .dot.c-trick { background: var(--blue); }
+    .dot.c-double { background: var(--teal); }
+    .dot.c-memo { background: var(--amber-grid); }
+
+    /* höger: knepkorten */
+    .tricks { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 7mm; }
+    .trick {
+      background: #fff; border-radius: 7mm; padding: 8mm 9mm;
+      box-shadow: 0 1.2mm 5mm rgba(31, 41, 90, 0.10);
+      display: flex; flex-direction: column; align-items: flex-start; gap: 3mm;
+    }
+    .t-head { display: flex; align-items: center; gap: 4mm; }
+    .badge {
+      width: 14mm; height: 14mm; border-radius: 4mm; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18pt; font-weight: 900;
+    }
+    .t-head h3 { font-size: 19.5pt; font-weight: 900; }
+    .trick p { font-size: 15pt; font-weight: 800; line-height: 1.3; }
+    .ex {
+      display: inline-block; margin-top: auto; padding: 2.2mm 4.5mm; border-radius: 3.5mm;
+      font-size: 14pt; font-weight: 900; white-space: nowrap;
+    }
+    .c-flip .badge { background: var(--primary); }
+    .c-flip .ex { background: var(--primary-tint); color: var(--primary); }
+    .c-free .badge { background: var(--green); }
+    .c-free .ex { background: var(--green-tint); color: var(--green); }
+    .c-trick .badge { background: var(--blue); }
+    .c-trick .ex { background: var(--blue-tint); color: var(--blue); }
+    .c-double .badge { background: var(--teal); }
+    .c-double .ex { background: var(--teal-tint); color: var(--teal); }
+
+    /* nederst: de sex att memorera */
+    .memo-head { text-align: center; font-size: 26pt; font-weight: 900; }
+    .memo-head .star { color: var(--amber-grid); }
+    .memos { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6mm; margin-top: 7mm; }
+    .memo {
+      background: #fff; border-radius: 7mm; padding: 5mm;
+      box-shadow: 0 1.2mm 5mm rgba(31, 41, 90, 0.10);
+      text-align: center;
+    }
+    .memo img { width: 100%; border-radius: 4mm; display: block; }
+    .memo .eq { font-size: 18.5pt; font-weight: 900; margin-top: 3mm; }
+    .memo .eq span { color: var(--amber); }
+    .memo .ramsa { font-family: "Caveat", "Comic Sans MS", cursive; font-size: 22pt; color: var(--amber); line-height: 1.05; margin-top: 1mm; }
+
+    .sheet footer {
+      text-align: center;
+      font-size: 14pt; font-weight: 700; color: var(--muted);
+    }
+    .sheet footer strong { color: var(--primary); font-weight: 900; }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div>
+    <h1>Stora affischen</h1>
+    <p>Hela metoden på ett enda blad.</p>
+  </div>
+  <p>Bladet är i A2-format: skriv ut i A2 eller A3 för väggen, eller välj ”anpassa till sida” så blir det ett fint A4-blad. Skriv gärna ut i färg med ”Bakgrundsgrafik” på. Du kan också <a href="affisch-stor.pdf">ladda ner den som PDF</a>. Vill du hellre ha ett blad per knep? <a href="affischer.html">Här är affischpaketet</a>. <a href="./">Tillbaka till gångertabellen.se</a></p>
+  <button type="button" class="btn" onclick="print()">Skriv ut</button>
+</div>
+
+<div class="wrap">
+  <section class="sheet">
+    <div class="head">
+      <h2>Hundra tal att lära sig utantill? Nej då!</h2>
+      <p>Med knepen är det bara sex tal som behöver memoreras, här är hela kartan:</p>
+    </div>
+
+    <div class="mid">
+      <div class="map">
+        <div class="grid" data-overview style="grid-template-columns: repeat(11, 14.5mm); grid-auto-rows: 14.5mm; font-size: 16pt;"></div>
+        <ul class="legend">
+          <li><span class="dot c-flip"></span>Vänd på talen, nästan hälften försvinner</li>
+          <li><span class="dot c-free"></span>Ettan och tian är gratis</li>
+          <li><span class="dot c-trick"></span>Femman och nian har superknep</li>
+          <li><span class="dot c-double"></span>Tvåan, fyran och trean är bara dubblor</li>
+          <li><span class="dot c-memo"></span>Kvar: bara 6 tal att memorera!</li>
+        </ul>
+      </div>
+
+      <div class="tricks">
+        <div class="trick c-flip">
+          <div class="t-head"><span class="badge">×</span><h3>Vänd på det!</h3></div>
+          <p>4 × 6 är samma sak som 6 × 4. Kan du den ena kan du den andra!</p>
+          <span class="ex">4 × 6 = 6 × 4 = 24</span>
+        </div>
+        <div class="trick c-free">
+          <div class="t-head"><span class="badge">1</span><h3>Ettan</h3></div>
+          <p>Ingenting händer! Talet är kvar precis som det var.</p>
+          <span class="ex">1 × 7 = 7</span>
+        </div>
+        <div class="trick c-free">
+          <div class="t-head"><span class="badge">10</span><h3>Tian</h3></div>
+          <p>Lägg bara till en nolla på slutet.</p>
+          <span class="ex">7 × 10 = 70</span>
+        </div>
+        <div class="trick c-trick">
+          <div class="t-head"><span class="badge">5</span><h3>Femman</h3></div>
+          <p>Fem är hälften av tio: halvera talet och ta sedan gånger tio!</p>
+          <span class="ex">8 × 5 = 4 × 10 = 40</span>
+        </div>
+        <div class="trick c-trick">
+          <div class="t-head"><span class="badge">9</span><h3>Nian</h3></div>
+          <p>Första siffran är ett mindre än talet, och svarets siffror blir 9 ihop.</p>
+          <span class="ex">7 × 9 → 6 och 3 → 63</span>
+        </div>
+        <div class="trick c-double">
+          <div class="t-head"><span class="badge">2</span><h3>Tvåan</h3></div>
+          <p>Dubbla talet! Plussa det med sig självt.</p>
+          <span class="ex">6 × 2 = 6 + 6 = 12</span>
+        </div>
+        <div class="trick c-double">
+          <div class="t-head"><span class="badge">4</span><h3>Fyran</h3></div>
+          <p>Dubbla två gånger!</p>
+          <span class="ex">6 × 4: 6 → 12 → 24</span>
+        </div>
+        <div class="trick c-double">
+          <div class="t-head"><span class="badge">3</span><h3>Trean</h3></div>
+          <p>Dubbla talet och lägg sedan till det en gång till!</p>
+          <span class="ex">7 × 3: 14, 14 + 7 = 21</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom">
+    <p class="memo-head"><span class="star">★</span> De enda sex du behöver memorera <span class="star">★</span></p>
+    <div class="memos">
+      <div class="memo">
+        <img src="bilder/7x8.webp" alt="56 = 7 x 8, siffrorna kommer i ordning">
+        <p class="eq">7 × 8 = <span>56</span></p>
+        <p class="ramsa">”5, 6, 7, 8!”</p>
+      </div>
+      <div class="memo">
+        <img src="bilder/8x8.webp" alt="8 x 8 = 64, Mario och Luigi">
+        <p class="eq">8 × 8 = <span>64</span></p>
+        <p class="ramsa">”Mario och Luigi!”</p>
+      </div>
+      <div class="memo">
+        <img src="bilder/7x7.webp" alt="Sjösjuk pirat som firar nyår: 7 x 7 = 49">
+        <p class="eq">7 × 7 = <span>49</span></p>
+        <p class="ramsa">”Sjösjuk? Fira nyår!”</p>
+      </div>
+      <div class="memo">
+        <img src="bilder/6x6.webp" alt="Sax gånger sax blir träsax: 6 x 6 = 36">
+        <p class="eq">6 × 6 = <span>36</span></p>
+        <p class="ramsa">”Sax, sax, träsax!”</p>
+      </div>
+      <div class="memo">
+        <img src="bilder/6x7.webp" alt="Sjuan hackar sexan i en fyra och en tvåa: 6 x 7 = 42">
+        <p class="eq">6 × 7 = <span>42</span></p>
+        <p class="ramsa">”Hackan!”</p>
+      </div>
+      <div class="memo">
+        <img src="bilder/6x8.webp" alt="Sex råttor blir fyra råttor: 6 x 8 = 48">
+        <p class="eq">6 × 8 = <span>48</span></p>
+        <p class="ramsa">”Sex råttor!”</p>
+      </div>
+    </div>
+    </div>
+
+    <footer>Träna gratis på <strong>www.gångertabellen.se</strong> · Knepen och bilderna ur Snillsparvs film om multiplikationstabellen</footer>
+  </section>
+</div>
+
+<script>
+// Samma krympordning som i filmen och på sajten (eliminationStep i app.js).
+function eliminationStep(r, c) {
+  if (c > r) return 0;
+  const order = [1, 10, 5, 9, 2, 4, 3];
+  for (let i = 0; i < order.length; i++) {
+    if (r === order[i] || c === order[i]) return i + 1;
+  }
+  return -1;
+}
+
+const STEP_COLOR = ["#4f46e5", "#16a34a", "#16a34a", "#2563eb", "#2563eb", "#0d9488", "#0d9488", "#0d9488"];
+
+// Kartan i slutfärgerna, med radhuvuden och svaren inskrivna i de sex
+// rutor som blir kvar att memorera.
+document.querySelectorAll("[data-overview]").forEach((grid) => {
+  for (let r = 0; r <= 10; r++) {
+    for (let c = 0; c <= 10; c++) {
+      const cell = document.createElement("span");
+      cell.className = "cell";
+      if (r === 0 || c === 0) {
+        cell.classList.add("hdr");
+        if (r + c > 0) cell.textContent = r === 0 ? c : r;
+        else cell.textContent = "×";
+      } else {
+        const e = eliminationStep(r, c);
+        if (e === -1) {
+          cell.classList.add("six");
+          cell.textContent = r * c;
+        } else {
+          cell.style.background = STEP_COLOR[e];
+          if (e === 0) cell.style.opacity = "0.35";
+        }
+      }
+      grid.appendChild(cell);
+    }
+  }
+});
+</script>
+
+</body>
+</html>

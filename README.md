@@ -48,11 +48,12 @@ All träningsdata sparas lokalt i webbläsaren (localStorage).
 - Affischer till klassrumsväggen: `affischer.html` är en utskriftssida
   med alla knep som A4-blad (översikten, de åtta strategierna och de sex
   minnesreglerna med bilderna ur filmen), länkad från Knepen-fliken.
-  `affischer.pdf` är samma paket som färdig PDF; generera om den ur
-  sidan med Chromium/Playwright (`page.pdf({ format: "A4",
-  printBackground: true, preferCSSPageSize: true })`) om arken ändras.
-  Typsnitten ligger lokalt i `fonter/` så att sidan fungerar utan
-  Google Fonts.
+  `affisch-stor.html` är alternativet med allt på ett enda A2-blad
+  (skalas i utskriftsdialogen till A3/A4). `affischer.pdf` och
+  `affisch-stor.pdf` är färdiga PDF:er; generera om dem ur sidorna med
+  Chromium/Playwright (`page.pdf({ printBackground: true,
+  preferCSSPageSize: true })`) om arken ändras. Typsnitten ligger
+  lokalt i `fonter/` så att sidorna fungerar utan Google Fonts.
 
 ## Kör lokalt
 
