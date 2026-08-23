@@ -421,7 +421,7 @@ function playFilmIn(wrap, sec) {
     iframe = document.createElement("iframe");
     iframe.allow = "autoplay; fullscreen; picture-in-picture";
     iframe.allowFullscreen = true;
-    iframe.title = "Snillsparvs film om multiplikationstabellen";
+    iframe.title = "Jonas film om multiplikationstabellen";
     wrap.appendChild(iframe);
   }
   iframe.src = filmSrc(sec, true);
