@@ -736,7 +736,7 @@ function submitAnswer(skip) {
     q.timer = setTimeout(nextQuestion, 800);
   } else {
     const head = correct
-      ? `<div class="fb ok">Rätt! Men den tog en liten stund.</div>`
+      ? `<div class="fb ok">Rätt! ⭐ Kan du den ännu snabbare nästa gång?</div>`
       : `<div class="fb bad">${skip ? "" : "Inte riktigt, "}${cur.a} × ${cur.b} = <strong>${answer}</strong></div>`;
     fb.innerHTML =
       head +
@@ -797,7 +797,7 @@ function finishRound() {
         const tags =
           (q.misses.has(k) ? `<span class="chip-tag chip-bad">fel</span>` : "") +
           (q.hints.has(k) && !q.misses.has(k) ? `<span class="chip-tag chip-hint">med ledtråd</span>` : "") +
-          (q.slows.has(k) ? `<span class="chip-tag chip-slow">långsam</span>` : "");
+          (q.slows.has(k) ? `<span class="chip-tag chip-slow">öva tempo</span>` : "");
         return `<div class="work-row">
           <div class="work-fact">${a} × ${b} = ${a * b}${tags}</div>
           <div class="work-tip">${tip.text}</div>
