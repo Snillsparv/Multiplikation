@@ -52,6 +52,7 @@ function defaultState() {
   return {
     known: {},   // { "4x6": true }, tal man bockat av att man redan kan
     stats: {},   // { "4x6": { attempts, wrong, recent, box, due, fastRow } }
+    times: {},   // rundtider per upplägg: { "t:2,5|10": { first: ms, best: ms } }
     totals: { rounds: 0, answers: 0, correct: 0, bestStreak: 0, paceMs: null },
     settings: {
       lastTables: [],
@@ -87,6 +88,7 @@ function load() {
     return {
       known: data.known || d.known,
       stats: migrateStats(data.stats || d.stats),
+      times: data.times || d.times,
       totals: Object.assign(d.totals, data.totals),
       settings: Object.assign(d.settings, data.settings),
     };
@@ -563,9 +565,6 @@ function renderTableChips() {
 }
 
 function startRound(opts) {
-  // en pendlande autoframmatnings-timer från förra rundan får inte
-  // avfyras in i den nya och hoppa över första frågan
-  if (quiz) clearTimeout(quiz.timer);
   let pool = opts.facts ? [...new Set(opts.facts)] : poolFromTables(opts.tables);
   if (pool.length === 0) {
     toast("Välj minst en tabell först!");
@@ -579,10 +578,18 @@ function startRound(opts) {
     else pool = left;
   }
 
+  // en pendlande autoframmatnings-timer (eller tickande klocka) från förra
+  // rundan får inte leva vidare in i den nya och hoppa över första frågan
+  if (quiz) {
+    clearTimeout(quiz.timer);
+    clearInterval(quiz.tick);
+  }
+
   const count = opts.count || state.settings.count;
   quiz = {
     opts,
     label: opts.label || "",
+    roundKey: roundKeyOf(opts, count),
     queue: buildQueue(pool, count),
     cap: count + Math.min(8, count),
     idx: 0,
@@ -598,12 +605,39 @@ function startRound(opts) {
     results: [],
     timer: null,
     current: null,
+    // rundklockan: går från start till sista svaret, så att man kan
+    // tävla mot sin egen tid (fryses vid sista frågans svar)
+    t0Round: performance.now(),
+    lastAnswerAt: null,
+    frozenAt: null,
+    tick: null,
   };
 
   showTab("trana");
   showScreen("quiz");
   $("#round-label").textContent = quiz.label;
+  quiz.tick = setInterval(updateTimerBadge, 1000);
+  updateTimerBadge();
   showQuestion();
+}
+
+// Samma upplägg = jämförbara tider: tabellval + antal frågor, eller exakt
+// samma tallista (t.ex. De sex svåra eller en läxlänk).
+function roundKeyOf(opts, count) {
+  return opts.facts
+    ? "f:" + [...new Set(opts.facts)].sort().join(",") + "|" + count
+    : "t:" + [...opts.tables].sort((x, y) => x - y).join(",") + "|" + count;
+}
+
+function updateTimerBadge() {
+  const el = $("#q-timer");
+  if (!quiz) {
+    el.hidden = true;
+    return;
+  }
+  const ms = (quiz.frozenAt ?? performance.now()) - quiz.t0Round;
+  el.textContent = "⏱ " + fmtTid(Math.floor(ms / 1000));
+  el.hidden = false;
 }
 
 /* ---------- Träna: frågor ---------- */
@@ -675,6 +709,7 @@ function submitAnswer(skip) {
   }
 
   cur.done = true;
+  q.lastAnswerAt = performance.now();
   // Fältet inaktiveras aldrig och behåller fokus under återkopplingen:
   // annars stängs mobiltangentbordet (särskilt på iPhone/iPad, som vägrar
   // öppna det igen utan ett fingertryck) och man tvingas trycka i fältet
@@ -747,6 +782,14 @@ function submitAnswer(skip) {
     $("#next-btn").addEventListener("click", nextQuestion);
     if (!correct) requeue(cur.key);
   }
+
+  // sista frågan besvarad (inget mer kunde köas): frys rundklockan, tiden
+  // ska inte fortsätta ticka medan man läser facit
+  if (q.idx >= q.queue.length - 1) {
+    q.frozenAt = q.lastAnswerAt;
+    clearInterval(q.tick);
+    updateTimerBadge();
+  }
 }
 
 function nextQuestion() {
@@ -759,7 +802,10 @@ function nextQuestion() {
 }
 
 function quitRound() {
-  if (quiz) clearTimeout(quiz.timer);
+  if (quiz) {
+    clearTimeout(quiz.timer);
+    clearInterval(quiz.tick);
+  }
   quiz = null;
   showScreen("setup");
 }
@@ -767,8 +813,29 @@ function quitRound() {
 /* ---------- Träna: resultat ---------- */
 function finishRound() {
   const q = quiz;
+  clearInterval(q.tick);
   state.totals.rounds++;
+
+  // rundtiden: från start till sista svaret. Första och bästa tiden per
+  // upplägg sparas, så att man kan tävla mot sig själv precis som i
+  // klassrummet: kör, träna knepen, kör igen och jämför.
+  const roundMs = (q.lastAnswerAt ?? performance.now()) - q.t0Round;
+  const prev = state.times[q.roundKey];
+  const newBest = !!prev && roundMs < prev.best;
+  state.times[q.roundKey] = prev
+    ? { first: prev.first, best: Math.min(prev.best, roundMs) }
+    : { first: roundMs, best: roundMs };
   save();
+
+  const tidStr = (ms) => fmtTid(Math.max(1, Math.round(ms / 1000)));
+  let timeNote;
+  if (!prev) {
+    timeNote = `Din tid: <strong>${tidStr(roundMs)}</strong>. Träna knepen och kör samma runda igen – kan du slå den?`;
+  } else if (newBest) {
+    timeNote = `🏆 <strong>Ny bästatid: ${tidStr(roundMs)}!</strong> Första gången tog det ${tidStr(prev.first)}.`;
+  } else {
+    timeNote = `Bästa tiden hittills: <strong>${tidStr(prev.best)}</strong> · Första gången: ${tidStr(prev.first)}. Kör igen och jaga rekordet!`;
+  }
 
   const pct = q.answered ? Math.round((q.corrects / q.answered) * 100) : 0;
   let headline, ringColor;
@@ -778,7 +845,7 @@ function finishRound() {
   else { headline = "Bra start, knepen hjälper dig!"; ringColor = "#be185d"; }
 
   const correctTimes = q.results.filter((r) => r.correct && !r.hinted);
-  let statPills = "";
+  let statPills = `<span class="pill">⏱ ${tidStr(roundMs)}</span>`;
   if (q.bestStreak >= 3) statPills += `<span class="pill">Svit: ${q.bestStreak}</span>`;
   if (correctTimes.length) {
     const mean = correctTimes.reduce((s, r) => s + r.ms, 0) / correctTimes.length;
@@ -832,6 +899,7 @@ function finishRound() {
       </div>
       <h2>${headline}</h2>
       <div class="result-stats">${statPills}</div>
+      <p class="time-note">${timeNote}</p>
     </div>
     ${autoHtml}
     ${workHtml}
@@ -1294,6 +1362,7 @@ function startFromHash() {
 function goHome() {
   if (quiz) {
     clearTimeout(quiz.timer);
+    clearInterval(quiz.tick);
     quiz = null;
   }
   showScreen("setup");

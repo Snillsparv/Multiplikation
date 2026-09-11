@@ -273,6 +273,12 @@ main {
   padding: 4px 6px;
   text-decoration: underline;
 }
+.q-timer {
+  color: var(--muted);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .streak {
   background: var(--amber-tint);
   border-radius: 999px;
@@ -396,6 +402,13 @@ main {
   flex-wrap: wrap;
   margin-top: 10px;
 }
+.time-note {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin: 10px 0 2px;
+}
+.time-note strong { color: var(--primary-dark); }
+
 .pill {
   background: var(--primary-tint);
   color: var(--primary-dark);

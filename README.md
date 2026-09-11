@@ -45,6 +45,10 @@ All träningsdata sparas lokalt i webbläsaren (localStorage).
 - Smart repetition: tal som sitter "vilar" allt längre mellan gångerna
   (Leitner-lådor), och tre snabba rätt i rad bockar av talet automatiskt
   i tabellen. Tempogränserna anpassar sig efter användarens egen takt.
+- Rundklocka: en diskret timer går under rundan (till sista svaret) och
+  resultatskärmen visar tiden. Första och bästa tiden per upplägg
+  (tabellval + antal, eller exakt tallista) sparas, så att man kan
+  tävla mot sig själv: kör, träna knepen, kör igen och jämför.
 - Affischer till klassrumsväggen: `affischer.html` är en utskriftssida
   med alla knep som A4-blad (översikten, de åtta strategierna och de sex
   minnesreglerna med bilderna ur filmen), länkad från Knepen-fliken.
