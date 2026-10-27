@@ -364,11 +364,13 @@ function bindDotsFlip(container, a, b) {
   });
 }
 
-/* ---------- Filmen (inbäddad Vimeo-spelare) ---------- */
-// Spelaren laddas först när användaren trycker play, och med dnt=1 så att
-// Vimeo inte spårar. Sekundtalen anger var varje knep börjar i filmen;
-// kortens data-film-attribut pekar in i tabellen.
-const FILM_ID = "1206760390";
+/* ---------- Filmen (inbäddad Bunny Stream-spelare) ---------- */
+// Spelaren laddas först när användaren trycker play. Filmen ligger i Jonas
+// videobibliotek hos Bunny Stream (flyttad från Vimeo i oktober 2026).
+// Sekundtalen anger var varje knep börjar i filmen; kortens
+// data-film-attribut pekar in i tabellen.
+const FILM_BIBLIOTEK = "791495";
+const FILM_ID = "0be1b414-99a0-4ee3-a736-1f65b741858c";
 const FILM_TIDER = {
   flip: 20,        // 0:20 Vänd på det
   "1": 31,         // 0:31 Ettan och tian
@@ -390,16 +392,18 @@ const FILM_TIDER = {
 const fmtTid = (sec) => Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
 
 function filmSrc(sec, autoplay) {
-  return `https://player.vimeo.com/video/${FILM_ID}?dnt=1&byline=0&portrait=0${autoplay ? "&autoplay=1" : ""}#t=${sec || 0}s`;
+  const spela = autoplay ? "true" : "false";
+  return `https://player.mediadelivery.net/embed/${FILM_BIBLIOTEK}/${FILM_ID}?autoplay=${spela}&preload=${spela}&levelCap=true&t=${sec || 0}`;
 }
 
-// Förvärmer anslutningarna till Vimeos servrar när användaren är på väg att
-// trycka play (hovrar/nuddar knappen). Ingen video hämtas förrän man klickar,
-// men handskakningarna är redan gjorda, så uppspelningen startar snabbare.
+// Förvärmer anslutningarna till Bunnys servrar (spelaren och videobibliotekets
+// CDN) när användaren är på väg att trycka play (hovrar/nuddar knappen).
+// Ingen video hämtas förrän man klickar, men handskakningarna är redan gjorda,
+// så uppspelningen startar snabbare.
 function warmFilmConnections() {
   if (warmFilmConnections.done) return;
   warmFilmConnections.done = true;
-  ["https://player.vimeo.com", "https://i.vimeocdn.com", "https://f.vimeocdn.com", "https://vod-adaptive-ak.vimeocdn.com"].forEach((href) => {
+  ["https://player.mediadelivery.net", "https://vz-950c7259-dfa.b-cdn.net"].forEach((href) => {
     const l = document.createElement("link");
     l.rel = "preconnect";
     l.href = href;
@@ -421,8 +425,9 @@ function playFilmIn(wrap, sec) {
   let iframe = wrap.querySelector("iframe");
   if (!iframe) {
     iframe = document.createElement("iframe");
-    iframe.allow = "autoplay; fullscreen; picture-in-picture";
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     iframe.allowFullscreen = true;
+    iframe.referrerPolicy = "strict-origin-when-cross-origin";
     iframe.title = "Jonas film om multiplikationstabellen";
     wrap.appendChild(iframe);
   }

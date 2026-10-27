@@ -37,8 +37,8 @@ All träningsdata sparas lokalt i webbläsaren (localStorage).
   förinställd runda direkt, perfekt att skicka som läxa. En
   kopiera-knapp på startskärmen skapar länken åt dig. Även
   `#traning=sex-svara` och `#traning=luckor` fungerar.
-- Filmen är inbäddad högst upp på startsidan och under Knepen (Vimeo,
-  spårningsfritt läge med dnt=1, laddas först när man trycker play, och
+- Filmen är inbäddad högst upp på startsidan och under Knepen (Bunny
+  Stream, bibliotek 791495, laddas först när man trycker play, och
   stoppas vid flikbyte så att ljudet aldrig fortsätter i bakgrunden). Varje knep-kort har en "Se knepet
   i filmen"-knapp som hoppar till rätt sekund; tiderna anges i
   `FILM_TIDER` i `app.js`.
