@@ -393,7 +393,7 @@ const fmtTid = (sec) => Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2
 
 function filmSrc(sec, autoplay) {
   const spela = autoplay ? "true" : "false";
-  return `https://player.mediadelivery.net/embed/${FILM_BIBLIOTEK}/${FILM_ID}?autoplay=${spela}&preload=${spela}&levelCap=true&t=${sec || 0}`;
+  return `https://player.mediadelivery.net/embed/${FILM_BIBLIOTEK}/${FILM_ID}?autoplay=${spela}&preload=${spela}&t=${sec || 0}`;
 }
 
 // Förvärmer anslutningarna till Bunnys servrar (spelaren och videobibliotekets
